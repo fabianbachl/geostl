@@ -44,6 +44,12 @@ grid.scale(bed_size_mm=200, z_exaggeration=1.8, base_thickness_mm=3)
 grid.export_stl("out/", prefix="tile")
 ```
 
+## Examples
+
+- [`examples/austria_dgm.py`](examples/austria_dgm.py) — build a watertight STL from the
+  Austrian DGM for the same region as the original prototype notebook. Requires
+  `assets/DGM_R25.tif`; run it with `python examples/austria_dgm.py`.
+
 ## Architecture (one line)
 
 `Region` (WGS84) → `ElevationSource.fetch` → `ElevationTile` (metric grid) → rectify → scale →
