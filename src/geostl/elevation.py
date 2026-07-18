@@ -32,7 +32,7 @@ class ElevationTile:
 
     def pixel_size_m(self) -> tuple[float, float]:
         """Return ``(dx, dy)`` ground sample distance in meters."""
-        raise NotImplementedError  # Phase 1
+        return (abs(self.transform.a), abs(self.transform.e))
 
     def subset(self, row0: int, row1: int, col0: int, col1: int) -> "ElevationTile":
         """Return the sub-tile ``[row0:row1, col0:col1]`` with an adjusted transform.

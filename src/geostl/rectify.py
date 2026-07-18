@@ -20,18 +20,64 @@ if TYPE_CHECKING:
 def reproject_to_metric(
     src_heights: "np.ndarray",
     src_transform: "Affine",
-    src_crs: str,
+    src_crs,
     bbox: "BoundingBox",
     *,
     resolution_m: Optional[float] = None,
     target_crs: Optional[str] = None,
+    src_nodata: Optional[float] = None,
 ) -> "ElevationTile":
     """Warp a source raster into a projected metric CRS (default: auto-UTM).
 
-    Yields a regular grid whose pixel spacing equals ``resolution_m`` so meshing
-    can treat it as a plain lattice. Backed by ``rasterio.warp`` (imported lazily).
+    Args:
+        src_heights: 2D source elevation array (in ``src_crs``).
+        src_transform: affine transform of ``src_heights``.
+        src_crs: CRS of the source array (an EPSG string or a rasterio CRS).
+        bbox: the requested area, in WGS84.
+        resolution_m: output ground sample distance in meters (default 30).
+        target_crs: output CRS (default: the UTM zone of the bbox centroid).
+        src_nodata: source nodata value to mask out during resampling.
+
+    Returns:
+        An :class:`~geostl.elevation.ElevationTile` on a regular metric grid whose
+        pixel spacing equals ``resolution_m``; masked / off-source pixels are NaN.
     """
-    raise NotImplementedError  # Phase 2
+    import numpy as np
+    from rasterio.transform import from_origin
+    from rasterio.warp import Resampling, reproject, transform_bounds
+
+    from geostl.elevation import ElevationTile
+    from geostl.geometry import utm_epsg_for
+
+    if resolution_m is None:
+        resolution_m = 30.0
+    if target_crs is None:
+        target_crs = f"EPSG:{utm_epsg_for(bbox)}"
+
+    # Output extent: the WGS84 bbox expressed in the target (metric) CRS.
+    west, south, east, north = bbox.as_tuple()
+    left, bottom, right, top = transform_bounds(
+        "EPSG:4326", target_crs, west, south, east, north
+    )
+    width = max(1, int(round((right - left) / resolution_m)))
+    height = max(1, int(round((top - bottom) / resolution_m)))
+    dst_transform = from_origin(left, top, resolution_m, resolution_m)
+
+    dst = np.full((height, width), np.nan, dtype="float32")
+    reproject(
+        source=np.ascontiguousarray(src_heights),
+        destination=dst,
+        src_transform=src_transform,
+        src_crs=src_crs,
+        src_nodata=src_nodata,
+        dst_transform=dst_transform,
+        dst_crs=target_crs,
+        dst_nodata=float("nan"),
+        resampling=Resampling.bilinear,
+    )
+    return ElevationTile(
+        heights=dst, transform=dst_transform, crs=str(target_crs), nodata=float("nan")
+    )
 
 
 def rectify_geodesic(tile: "ElevationTile", bbox: "BoundingBox") -> "ElevationTile":

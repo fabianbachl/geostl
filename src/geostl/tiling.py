@@ -30,7 +30,8 @@ class Region:
         target_crs: Optional[str] = None,
     ) -> "Section":
         """Fetch + rectify this whole region as a single :class:`Section`."""
-        raise NotImplementedError  # Phase 1-3
+        tile = source.fetch(self.bbox, resolution_m=resolution_m, target_crs=target_crs)
+        return Section(tile=tile)
 
     def to_grid(
         self,
