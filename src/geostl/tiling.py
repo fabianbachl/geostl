@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import TYPE_CHECKING, List, Optional
+
+import numpy as np
 
 from geostl.geometry import BoundingBox, GeoPoint
 
@@ -44,11 +47,36 @@ class Region:
     ) -> "Grid":
         """Fetch the whole region in ONE warp, then split into ``nx*ny`` tiles.
 
-        Fetching per-tile would resample independently and mismatch seams, so the
-        split happens on the single fetched array with shared edge pixels — that
-        is what makes the printed tiles butt together.
+        The region is fetched once and the resulting array is sliced so that
+        adjacent tiles **share their boundary row/column** (a 1-pixel overlap).
+        Because the shared edge is literally the same samples, the printed tiles
+        butt together with identical seam heights. Call :meth:`Grid.scale` to
+        give every tile one shared scale and z-reference.
         """
-        raise NotImplementedError  # Phase 5
+        if nx < 1 or ny < 1:
+            raise ValueError("nx and ny must both be >= 1")
+
+        tile = source.fetch(self.bbox, resolution_m=resolution_m, target_crs=target_crs)
+        h, w = tile.heights.shape
+
+        # nx+1 / ny+1 cut indices; neighbouring tiles reuse the cut as a shared edge.
+        col_edges = np.linspace(0, w - 1, nx + 1).round().astype(int)
+        row_edges = np.linspace(0, h - 1, ny + 1).round().astype(int)
+        if np.unique(col_edges).size != nx + 1 or np.unique(row_edges).size != ny + 1:
+            raise ValueError(
+                f"region ({w}x{h} px) is too small to split into {nx}x{ny} tiles; "
+                "use a finer resolution_m or fewer tiles"
+            )
+
+        sections: List[Section] = []
+        for r in range(ny):
+            for c in range(nx):
+                sub = tile.subset(
+                    int(row_edges[r]), int(row_edges[r + 1]) + 1,
+                    int(col_edges[c]), int(col_edges[c + 1]) + 1,
+                )
+                sections.append(Section(tile=sub, row=r, col=c))
+        return Grid(sections=sections, nx=nx, ny=ny, full_tile=tile)
 
 
 @dataclass
@@ -58,11 +86,14 @@ class Section:
     tile: "ElevationTile"
     row: int = 0
     col: int = 0
-    # Physical scaling; None until .scale() resolves it.
+    # Physical scaling; None until .scale() (or Grid.scale) resolves it.
     dx_mm: Optional[float] = None
     dy_mm: Optional[float] = None
     z_scale_mm_per_m: Optional[float] = None
     base_thickness_mm: Optional[float] = None
+    # Elevation (m) that maps to the base level. None -> this tile's own minimum;
+    # Grid.scale sets it to the whole-region minimum so tiles align in z.
+    z_ref_m: Optional[float] = None
 
     def scale(
         self,
@@ -94,12 +125,12 @@ class Section:
     def to_mesh(self) -> "TriangleMesh":
         """Build the watertight mesh (top surface + walls + base).
 
-        The lowest finite elevation maps to ``base_thickness_mm`` above a base
-        plane at z=0; NaN holes are filled at that lowest level so the solid stays
-        closed.
+        Heights are measured from ``z_ref_m`` (defaults to this tile's lowest
+        finite value); that reference maps to ``base_thickness_mm`` above a base
+        plane at z=0. NaN holes are filled at the lowest level so the solid stays
+        closed. Using a shared ``z_ref_m`` across grid tiles keeps their surfaces
+        continuous at the seams.
         """
-        import numpy as np
-
         from geostl.mesh import Mesher
 
         if self.dx_mm is None or self.z_scale_mm_per_m is None:
@@ -112,7 +143,8 @@ class Section:
         min_h = float(h[finite].min())
         h = np.where(finite, h, min_h)
 
-        z_top = (h - min_h) * self.z_scale_mm_per_m + self.base_thickness_mm
+        ref = self.z_ref_m if self.z_ref_m is not None else min_h
+        z_top = (h - ref) * self.z_scale_mm_per_m + self.base_thickness_mm
         return Mesher().build(z_top, self.dx_mm, self.dy_mm, base_z_mm=0.0)
 
     def export_stl(self, path) -> None:
@@ -127,11 +159,64 @@ class Grid:
     sections: List[Section] = field(default_factory=list)
     nx: int = 0
     ny: int = 0
+    full_tile: Optional["ElevationTile"] = None
 
-    def scale(self, **kwargs) -> "Grid":
-        """Apply one shared scale to every tile (computed from the whole region)."""
-        raise NotImplementedError  # Phase 5
+    def scale(
+        self,
+        *,
+        bed_size_mm: Optional[float] = None,
+        scale_xy: Optional[float] = None,
+        z_exaggeration: float = 1.0,
+        base_thickness_mm: float = 3.0,
+    ) -> "Grid":
+        """Apply one shared scale + z-reference to every tile.
 
-    def export_stl(self, directory, *, prefix: str = "tile") -> None:
-        """Write one STL per tile: ``<directory>/<prefix>_r<row>_c<col>.stl``."""
-        raise NotImplementedError  # Phase 5
+        The scale is computed from the **whole region**, so ``bed_size_mm`` sizes
+        the entire assembled model (each tile is a fraction of it), and every tile
+        shares the same mm-per-meter, base thickness, and z-reference (the region
+        minimum) — which is what makes the printed pieces align.
+        """
+        from geostl.scaling import resolve_scale
+
+        if self.full_tile is None:
+            raise RuntimeError("Grid has no full_tile; build it via Region.to_grid")
+
+        dx_m, dy_m = self.full_tile.pixel_size_m()
+        h, w = self.full_tile.heights.shape
+        spec = resolve_scale(
+            (w - 1) * dx_m,
+            (h - 1) * dy_m,
+            bed_size_mm=bed_size_mm,
+            scale_xy=scale_xy,
+            z_exaggeration=z_exaggeration,
+            base_thickness_mm=base_thickness_mm,
+        )
+        finite = np.isfinite(self.full_tile.heights)
+        if not finite.any():
+            raise ValueError("region has no finite elevation data")
+        z_ref = float(self.full_tile.heights[finite].min())
+
+        for s in self.sections:
+            s.dx_mm = dx_m * spec.scale_xy_mm_per_m
+            s.dy_mm = dy_m * spec.scale_xy_mm_per_m
+            s.z_scale_mm_per_m = spec.z_scale_mm_per_m
+            s.base_thickness_mm = spec.base_thickness_mm
+            s.z_ref_m = z_ref
+        return self
+
+    def export_stl(self, directory, *, prefix: str = "tile") -> List[Path]:
+        """Write one STL per tile: ``<directory>/<prefix>_r<row>_c<col>.stl``.
+
+        Returns the list of written paths.
+        """
+        if not self.sections or self.sections[0].dx_mm is None:
+            raise RuntimeError("call .scale(...) on the Grid before exporting")
+
+        directory = Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        paths: List[Path] = []
+        for s in self.sections:
+            p = directory / f"{prefix}_r{s.row}_c{s.col}.stl"
+            s.export_stl(p)
+            paths.append(p)
+        return paths

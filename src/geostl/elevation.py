@@ -37,7 +37,14 @@ class ElevationTile:
     def subset(self, row0: int, row1: int, col0: int, col1: int) -> "ElevationTile":
         """Return the sub-tile ``[row0:row1, col0:col1]`` with an adjusted transform.
 
-        Grid tiling includes a shared boundary row/column across neighbors so
+        Row/column indices use Python-slice (half-open) semantics. Grid tiling
+        passes ranges that share a boundary row/column across neighbors, so
         adjacent tiles have pixel-identical seams.
         """
-        raise NotImplementedError  # Phase 5
+        from affine import Affine
+
+        sub = np.ascontiguousarray(self.heights[row0:row1, col0:col1])
+        transform = self.transform * Affine.translation(col0, row0)
+        return ElevationTile(
+            heights=sub, transform=transform, crs=self.crs, nodata=self.nodata
+        )
