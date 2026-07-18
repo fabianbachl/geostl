@@ -73,14 +73,51 @@ class Section:
         base_thickness_mm: float = 3.0,
     ) -> "Section":
         """Resolve physical dimensions (mm). Returns ``self`` for chaining."""
-        raise NotImplementedError  # Phase 4
+        from geostl.scaling import resolve_scale
+
+        dx_m, dy_m = self.tile.pixel_size_m()
+        h, w = self.tile.heights.shape
+        spec = resolve_scale(
+            (w - 1) * dx_m,
+            (h - 1) * dy_m,
+            bed_size_mm=bed_size_mm,
+            scale_xy=scale_xy,
+            z_exaggeration=z_exaggeration,
+            base_thickness_mm=base_thickness_mm,
+        )
+        self.dx_mm = dx_m * spec.scale_xy_mm_per_m
+        self.dy_mm = dy_m * spec.scale_xy_mm_per_m
+        self.z_scale_mm_per_m = spec.z_scale_mm_per_m
+        self.base_thickness_mm = spec.base_thickness_mm
+        return self
 
     def to_mesh(self) -> "TriangleMesh":
-        """Build the watertight mesh (top surface + walls + base)."""
-        raise NotImplementedError  # Phase 3
+        """Build the watertight mesh (top surface + walls + base).
+
+        The lowest finite elevation maps to ``base_thickness_mm`` above a base
+        plane at z=0; NaN holes are filled at that lowest level so the solid stays
+        closed.
+        """
+        import numpy as np
+
+        from geostl.mesh import Mesher
+
+        if self.dx_mm is None or self.z_scale_mm_per_m is None:
+            raise RuntimeError("call .scale(...) before meshing this Section")
+
+        h = np.asarray(self.tile.heights, dtype="float64")
+        finite = np.isfinite(h)
+        if not finite.any():
+            raise ValueError("tile has no finite elevation data to mesh")
+        min_h = float(h[finite].min())
+        h = np.where(finite, h, min_h)
+
+        z_top = (h - min_h) * self.z_scale_mm_per_m + self.base_thickness_mm
+        return Mesher().build(z_top, self.dx_mm, self.dy_mm, base_z_mm=0.0)
 
     def export_stl(self, path) -> None:
-        raise NotImplementedError  # Phase 3
+        """Build the mesh and write it to ``path`` as an STL."""
+        self.to_mesh().export_stl(path)
 
 
 @dataclass
