@@ -1,1 +1,19 @@
+# Elevation data (kept out of the repo; can be large)
 *.tif
+*.tiff
+
+# Build/exports
+*.stl
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
