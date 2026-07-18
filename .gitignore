@@ -5,6 +5,9 @@
 # Build/exports
 *.stl
 
+# Sphinx docs build
+docs/_build/
+
 # Python
 __pycache__/
 *.py[cod]
