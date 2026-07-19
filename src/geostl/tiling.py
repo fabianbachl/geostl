@@ -171,21 +171,27 @@ class Grid:
     ) -> "Grid":
         """Apply one shared scale + z-reference to every tile.
 
-        The scale is computed from the **whole region**, so ``bed_size_mm`` sizes
-        the entire assembled model (each tile is a fraction of it), and every tile
-        shares the same mm-per-meter, base thickness, and z-reference (the region
-        minimum) — which is what makes the printed pieces align.
+        ``bed_size_mm`` is the **print-bed size**: the scale is chosen so the
+        largest tile's longer side maps to ``bed_size_mm``, so every tile fits the
+        bed. That single scale — with a shared base thickness and z-reference (the
+        whole-region minimum) — is applied to all tiles, which is what makes the
+        printed pieces align at their seams. Pass ``scale_xy`` instead for an
+        explicit mm-per-meter.
         """
         from geostl.scaling import resolve_scale
 
         if self.full_tile is None:
             raise RuntimeError("Grid has no full_tile; build it via Region.to_grid")
+        if not self.sections:
+            raise RuntimeError("Grid has no sections to scale")
 
         dx_m, dy_m = self.full_tile.pixel_size_m()
-        h, w = self.full_tile.heights.shape
+        # Size by the largest tile so every tile fits the print bed.
+        fit_x = max((s.tile.heights.shape[1] - 1) * dx_m for s in self.sections)
+        fit_y = max((s.tile.heights.shape[0] - 1) * dy_m for s in self.sections)
         spec = resolve_scale(
-            (w - 1) * dx_m,
-            (h - 1) * dy_m,
+            fit_x,
+            fit_y,
             bed_size_mm=bed_size_mm,
             scale_xy=scale_xy,
             z_exaggeration=z_exaggeration,

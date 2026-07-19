@@ -257,8 +257,9 @@ Parameters (resolved once per Section/Grid):
 - `base_thickness_mm` — solid base below the lowest point → watertight, stable print.
 - optional `max_model_height_mm` clamp.
 
-For a `Grid`, scaling is computed from the **whole** region so all tiles share one scale and base
-plane.
+For a `Grid`, `bed_size_mm` is the **print‑bed** size: one shared scale is applied to every tile,
+sized so the **largest tile fits the bed** (so each printed piece fits). The z‑reference and base
+are shared across tiles so the pieces align at their seams.
 
 ---
 

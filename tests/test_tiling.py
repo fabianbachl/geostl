@@ -75,3 +75,16 @@ def test_too_many_tiles_raises(synthetic_source):
     # A 32x32 source cannot split into 40 tiles on an axis without collapsing edges.
     with pytest.raises(ValueError):
         _region().to_grid(synthetic_source, nx=40, ny=1)
+
+
+def test_bed_size_is_per_tile(synthetic_source):
+    """bed_size_mm sizes the print bed: every tile fits it, largest fills it."""
+    bed = 100.0
+    grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(bed_size_mm=bed)
+    sizes = [
+        max((s.tile.heights.shape[1] - 1) * s.dx_mm,
+            (s.tile.heights.shape[0] - 1) * s.dy_mm)
+        for s in grid.sections
+    ]
+    assert max(sizes) == pytest.approx(bed)         # largest tile fills the bed
+    assert all(size <= bed + 1e-6 for size in sizes)  # every tile fits the bed
