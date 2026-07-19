@@ -24,7 +24,7 @@ def main() -> None:
     region = Region.from_corners(CORNER_A, CORNER_B)
     source = AustriaDGMSource()  # 1 m ALS DTM, latest series, from data.bev.gv.at
 
-    section = region.to_section(source, resolution_m=25).scale(
+    section = region.to_section(source, resolution_m=3.0).scale(
         bed_size_mm=200.0,
         z_exaggeration=1.0,
         base_thickness_mm=3.0,
