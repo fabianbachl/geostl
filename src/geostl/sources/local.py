@@ -15,10 +15,32 @@ if TYPE_CHECKING:
 class LocalGeoTiffSource(ElevationSource):
     """Read, crop, and reproject a local GeoTIFF via rasterio.
 
-    Reproduces the prototype notebook's ingestion path and stands in for
+    Works with any georeferenced GeoTIFF — not just one file or one region. The
+    source is read in whatever CRS it declares and warped onto a metric output
+    grid, and only the raster window covering the requested output is read, so
+    multi-gigabyte DEMs are handled cheaply. It reproduces the prototype
+    notebook's ingestion path and stands in for
     :class:`~geostl.sources.austria.AustriaDGMSource` during early development
-    (feed it ``assets/DGM_R25.tif``). Only the raster window covering the
-    requested output is read, so multi-gigabyte DEMs are handled cheaply.
+    (feed it ``assets/DGM_R25.tif``).
+
+    Any region the file covers works, and the output CRS defaults to the UTM zone
+    of the requested bbox centroid (see :func:`~geostl.geometry.utm_epsg_for`), so
+    callers need not reason about zones: a western-Austria box resolves to UTM 32N
+    while a central or eastern one uses 33N, each with correct elevations. A DEM
+    from another country in its own national CRS works the same way; only the file
+    path changes.
+
+    **Limitations**
+
+    * Regions outside the file's coverage come back as ``NaN`` (filled flat when
+      meshed); a bbox that does not overlap the raster at all raises
+      :class:`ValueError`.
+    * A single region that spans a UTM-zone boundary is still projected into one
+      zone (the centroid's), so horizontal-scale distortion grows toward the far
+      edge. For a very wide east–west region, pass an explicit equal-area or
+      equidistant ``target_crs`` to :meth:`fetch`.
+    * A bbox crossing the antimeridian cannot be expressed, because of the
+      ``west < east`` invariant of :class:`~geostl.geometry.BoundingBox`.
     """
 
     def __init__(self, path: Union[str, Path]):
