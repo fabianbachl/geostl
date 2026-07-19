@@ -46,9 +46,12 @@ grid.export_stl("out/", prefix="tile")
 
 ## Examples
 
-- [`examples/austria_dgm.py`](examples/austria_dgm.py) — build a watertight STL from the
-  Austrian DGM for the same region as the original prototype notebook. Requires
-  `assets/DGM_R25.tif`; run it with `python examples/austria_dgm.py`.
+- [`examples/austria_dgm_api.py`](examples/austria_dgm_api.py) — build a watertight STL
+  **straight from the BEV Austria DGM API** (1 m ALS, no local file; needs network).
+- [`examples/austria_dgm.py`](examples/austria_dgm.py) — same region from a local
+  `assets/DGM_R25.tif` GeoTIFF.
+- [`examples/austria_dgm_grid.py`](examples/austria_dgm_grid.py) — tile a larger region
+  into a 3×3 grid of seam-matched STL pieces.
 
 ## Architecture (one line)
 
