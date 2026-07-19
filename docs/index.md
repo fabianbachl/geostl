@@ -7,9 +7,11 @@ data covering it, rectify it to a metric grid, scale it to a print bed, and prod
 watertight STL — as a single section or a grid of seam-matched tiles that fit together.
 
 ```{note}
-Pre-alpha. The public API surface and the pluggable data-source abstraction are in place;
-the implementation is proceeding phase by phase. See the project's `DESIGN.md` for the
-full architecture and roadmap.
+Working core, pre-1.0. The full pipeline — fetch → reproject → scale → watertight mesh →
+STL, for single sections and seam-matched grids — is implemented and verified. Data sources
+today: the Austria (BEV) API, local GeoTIFF, and remote COG; a global source
+(OpenTopography), a CLI, and tile connectors are still to come. See the project's
+`DESIGN.md` for the roadmap.
 ```
 
 ## How it fits together
