@@ -92,3 +92,33 @@ def test_bbox_outside_raster_raises(tmp_path):
     off = Region.from_corners(GeoPoint(0.0, -150.0), GeoPoint(0.1, -149.9))
     with pytest.raises(ValueError):
         LocalGeoTiffSource(dem).fetch(off.bbox, resolution_m=50)
+
+
+def test_rotated_source_crs_fully_covers_output(tmp_path):
+    """A source in a rotated CRS (EPSG:31287, Austria Lambert) must still fully
+    cover the UTM output grid — no NaN wedges at the corners (regression)."""
+    from rasterio.transform import from_origin
+    from rasterio.warp import transform_bounds
+
+    from geostl.geometry import BoundingBox
+
+    path = tmp_path / "lambert.tif"
+    res, n = 50.0, 500
+    x0, ytop = 450000.0, 350000.0  # inside the Austrian Lambert domain
+    transform = from_origin(x0, ytop, res, res)
+    data = np.linspace(500.0, 2000.0, n * n, dtype="float32").reshape(n, n)
+    with rasterio.open(
+        path, "w", driver="GTiff", width=n, height=n, count=1,
+        dtype="float32", crs="EPSG:31287", transform=transform, nodata=0.0,
+    ) as ds:
+        ds.write(data, 1)
+
+    # WGS84 extent of the raster, shrunk 20% so the query is safely inside the data.
+    west, south, east, north = transform_bounds(
+        "EPSG:31287", "EPSG:4326", x0, ytop - n * res, x0 + n * res, ytop
+    )
+    mx, my = (east - west) * 0.2, (north - south) * 0.2
+    bbox = BoundingBox(south=south + my, west=west + mx, north=north - my, east=east - mx)
+
+    tile = LocalGeoTiffSource(path).fetch(bbox, resolution_m=100)
+    assert np.isfinite(tile.heights).all()

@@ -5,8 +5,11 @@ the Pyhrn / Ennstal area of the Austrian Alps — and turns it into a single
 watertight STL.
 
 Requires the elevation raster at ``assets/DGM_R25.tif`` (git-ignored): a 25 m
-Austrian *Digitales Geländemodell* tile in EPSG:31287. Run from the repo root::
+Austrian *Digitales Geländemodell* tile in EPSG:31287. 
+Found at:
+https://doi.org/10.48677/6a853c17-8960-44a4-81fb-18e0549a1c80
 
+Run from the repo root::
     python examples/austria_dgm.py
 """
 from pathlib import Path

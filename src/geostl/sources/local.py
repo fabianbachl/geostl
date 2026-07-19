@@ -18,7 +18,7 @@ class LocalGeoTiffSource(ElevationSource):
     Reproduces the prototype notebook's ingestion path and stands in for
     :class:`~geostl.sources.austria.AustriaDGMSource` during early development
     (feed it ``assets/DGM_R25.tif``). Only the raster window covering the
-    requested bbox is read, so multi-gigabyte DEMs are handled cheaply.
+    requested output is read, so multi-gigabyte DEMs are handled cheaply.
     """
 
     def __init__(self, path: Union[str, Path]):
@@ -35,21 +35,23 @@ class LocalGeoTiffSource(ElevationSource):
         from rasterio.warp import transform_bounds
         from rasterio.windows import Window
 
-        from geostl.rectify import reproject_to_metric
+        from geostl.rectify import reproject_to_metric, resolve_output_grid
 
         with rasterio.open(self.path) as ds:
             if ds.crs is None:
                 raise ValueError(f"{self.path} has no CRS; cannot georeference it.")
 
-            # Locate the bbox inside the source raster (in the source CRS) and read
-            # ONLY that window with a small pad — the full DGM can be gigabytes.
-            west, south, east, north = bbox.as_tuple()
-            left, bottom, right, top = transform_bounds(
-                "EPSG:4326", ds.crs, west, south, east, north
+            # Resolve the output grid, then read the source window that covers it:
+            # the output rectangle (in target CRS) mapped back into the source CRS.
+            # Using the *output* extent — not the WGS84 bbox — is what prevents the
+            # rotated projection from leaving NaN wedges at the output corners.
+            out_crs, out_bounds, _w, _h, _t = resolve_output_grid(
+                bbox, resolution_m, target_crs
             )
-            win = ds.window(left, bottom, right, top)
+            sleft, sbottom, sright, stop = transform_bounds(out_crs, ds.crs, *out_bounds)
+            win = ds.window(sleft, sbottom, sright, stop)
 
-            pad = 2
+            pad = 3  # a few pixels of context for edge resampling
             col0 = max(0, int(math.floor(win.col_off)) - pad)
             row0 = max(0, int(math.floor(win.row_off)) - pad)
             col1 = min(ds.width, int(math.ceil(win.col_off + win.width)) + pad)
@@ -72,6 +74,6 @@ class LocalGeoTiffSource(ElevationSource):
             src_crs,
             bbox,
             resolution_m=resolution_m,
-            target_crs=target_crs,
+            target_crs=out_crs,
             src_nodata=src_nodata,
         )
