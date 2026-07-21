@@ -24,7 +24,9 @@ def main() -> None:
     region = Region.from_corners(CORNER_A, CORNER_B)
     source = AustriaDGMSource()  # 1 m ALS DTM, latest series, from data.bev.gv.at
 
-    section = region.to_section(source, resolution_m=3.0).scale(
+    # fetch_resolution_m caps the (remote) read; the printed pixel size is set at
+    # export via resolution_mm.
+    section = region.to_section(source, fetch_resolution_m=3.0).scale(
         bed_size_mm=200.0,
         z_exaggeration=1.0,
         base_thickness_mm=3.0,
@@ -34,7 +36,7 @@ def main() -> None:
     print(f"Fetched {w}x{h} px in {section.tile.crs} from the BEV ATOM service")
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    section.export_stl(OUTPUT_PATH)
+    section.export_stl(OUTPUT_PATH, resolution_mm=0.5)
     print(f"Wrote {OUTPUT_PATH} ({OUTPUT_PATH.stat().st_size / 1e6:.2f} MB)")
 
 

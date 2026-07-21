@@ -22,7 +22,7 @@ class SyntheticSource(ElevationSource):
         self.n = n
         self.pixel_m = pixel_m
 
-    def fetch(self, bbox, *, resolution_m=None, target_crs=None) -> ElevationTile:
+    def fetch(self, bbox, *, fetch_resolution_m=None, target_crs=None) -> ElevationTile:
         from affine import Affine  # ships transitively with rasterio
 
         heights = gaussian_hill(self.n)

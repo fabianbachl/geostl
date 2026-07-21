@@ -101,7 +101,7 @@ class AustriaDGMSource(ElevationSource):
         self,
         bbox: "BoundingBox",
         *,
-        resolution_m: Optional[float] = None,
+        fetch_resolution_m: Optional[float] = None,
         target_crs: Optional[str] = None,
     ) -> "ElevationTile":
         from geostl.sources.cog import RemoteCOGSource
@@ -114,7 +114,7 @@ class AustriaDGMSource(ElevationSource):
             )
         # BEV COGs advertise a broken engineering CRS; force EPSG:3035 (per the feed).
         return RemoteCOGSource(urls, src_crs="EPSG:3035").fetch(
-            bbox, resolution_m=resolution_m, target_crs=target_crs
+            bbox, fetch_resolution_m=fetch_resolution_m, target_crs=target_crs
         )
 
 

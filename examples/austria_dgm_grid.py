@@ -10,6 +10,7 @@ Austrian *Digitales Geländemodell* tile in EPSG:31287. Found at:
 https://doi.org/10.48677/6a853c17-8960-44a4-81fb-18e0549a1c80
 
 Run from the repo root::
+
     python examples/austria_dgm_grid.py
 """
 from pathlib import Path
@@ -39,9 +40,11 @@ def main() -> None:
     region = Region.from_corners(CORNER_A, CORNER_B)
     source = LocalGeoTiffSource(DGM_PATH)
 
-    # One fetch for the whole region; split into NX*NY seam-matched tiles.
-    grid = region.to_grid(source, nx=NX, ny=NY, resolution_m=50).scale(
-        bed_size_mm=240.0,      # the whole assembled map -> 240 mm on its longer side
+    # One native read for the whole region, split into NX*NY seam-matched tiles.
+    # (For a fine/remote source over a big area, pass fetch_resolution_m to cap
+    # the read; the 25 m local DGM is cheap to read whole.)
+    grid = region.to_grid(source, nx=NX, ny=NY).scale(
+        bed_size_mm=240.0,      # each tile fits a 240 mm print bed
         z_exaggeration=1.0,     # true vertical scale
         base_thickness_mm=3.0,
     )
@@ -53,7 +56,9 @@ def main() -> None:
         nan = 100.0 * float(np.mean(~np.isfinite(s.tile.heights)))
         print(f"  tile r{s.row} c{s.col}: {w}x{h} px, nodata={nan:.1f}%")
 
-    paths = grid.export_stl(OUTPUT_DIR, prefix="dgm")
+    # resolution_mm sets the printed pixel size; the region is downsampled once and
+    # re-split so the tiles' seams stay identical.
+    paths = grid.export_stl(OUTPUT_DIR, prefix="dgm", resolution_mm=1.0)
     total_mb = sum(p.stat().st_size for p in paths) / 1e6
     print(f"Wrote {len(paths)} STL tiles to {OUTPUT_DIR}/ ({total_mb:.1f} MB total)")
 

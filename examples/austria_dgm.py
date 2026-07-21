@@ -37,7 +37,7 @@ def main() -> None:
     source = LocalGeoTiffSource(DGM_PATH)
 
     # Fetch + rectify to a metric grid, then scale for the print bed.
-    section = region.to_section(source, resolution_m=25).scale(
+    section = region.to_section(source).scale(
         bed_size_mm=200.0,      # longest horizontal side -> 200 mm
         z_exaggeration=1.0,     # play up the relief
         base_thickness_mm=3.0,  # solid base below the lowest point

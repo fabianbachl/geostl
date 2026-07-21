@@ -1,9 +1,10 @@
 """Shared raster ingestion used by all file/URL-based sources.
 
 Opens one or more rasterio-readable sources (local paths or ``/vsicurl/`` URLs),
-reads only the window covering the requested output — decimated to roughly the
-output resolution so Cloud-Optimized GeoTIFF overviews are used and remote reads
-stay small — reprojects each onto the shared metric output grid, and mosaics them.
+reads only the window covering the requested output, reprojects each onto the
+shared metric output grid, and mosaics them. By default the sources are read at
+their **native** resolution; pass ``fetch_resolution_m`` to read a coarser
+overview instead (for very large / remote areas).
 """
 from __future__ import annotations
 
@@ -48,34 +49,64 @@ def _read_window(ds, crs, out_crs, out_bounds, out_width, out_height, pad=3):
     return arr, transform, crs, ds.nodata
 
 
+def _effective_read_resolution(sources, out_crs, src_crs, cap):
+    """Metres/pixel to read at: the finest native source resolution (in ``out_crs``),
+    coarsened to ``cap`` if given. ``cap=None`` reads native (max) detail."""
+    import rasterio
+    from rasterio.warp import calculate_default_transform
+
+    native = None
+    for src in sources:
+        try:
+            with rasterio.open(src) as ds:
+                crs = src_crs or ds.crs
+                if crs is None:
+                    continue
+                transform, _w, _h = calculate_default_transform(
+                    crs, out_crs, ds.width, ds.height, *ds.bounds
+                )
+                res = abs(transform.a)
+        except Exception:
+            continue
+        native = res if native is None else min(native, res)
+    if native is None:
+        native = 30.0  # fallback if native resolution could not be determined
+    return native if cap is None else max(native, cap)
+
+
 def fetch_rasters(
     sources: Sequence[str],
     bbox: "BoundingBox",
     *,
-    resolution_m: Optional[float] = None,
+    fetch_resolution_m: Optional[float] = None,
     target_crs: Optional[str] = None,
     src_crs: Optional[str] = None,
 ) -> "ElevationTile":
     """Read, reproject, and mosaic ``sources`` onto one metric output grid.
 
     ``sources`` are rasterio identifiers — local paths or ``/vsicurl/<url>`` for
-    remote COGs. Each is opened, its covering window read (decimated to the output
-    resolution), reprojected to the target metric grid, and merged (the first
-    source with data wins per pixel). ``src_crs`` overrides the datasets' embedded
-    CRS (needed when a COG advertises a broken/engineering CRS). Raises
-    ``ValueError`` if nothing overlaps.
+    remote COGs. By default they are read at their native resolution;
+    ``fetch_resolution_m`` reads a coarser overview instead (a floor on metres per
+    pixel, for large/remote areas). Each source's covering window is reprojected to
+    the target metric grid and merged (first source with data wins per pixel).
+    ``src_crs`` overrides the datasets' embedded CRS (needed when a COG advertises a
+    broken/engineering CRS). Raises ``ValueError`` if nothing overlaps.
     """
     import numpy as np
     import rasterio
 
     from geostl.elevation import ElevationTile
+    from geostl.geometry import utm_epsg_for
     from geostl.rectify import reproject_to_metric, resolve_output_grid
 
     if not sources:
         raise ValueError("no raster sources given")
 
+    out_crs = target_crs or f"EPSG:{utm_epsg_for(bbox)}"
+    read_res = _effective_read_resolution(sources, out_crs, src_crs, fetch_resolution_m)
+
     out_crs, out_bounds, width, height, dst_transform = resolve_output_grid(
-        bbox, resolution_m, target_crs
+        bbox, read_res, out_crs
     )
     acc = np.full((height, width), np.nan, dtype="float32")
     covered = 0
@@ -90,7 +121,7 @@ def fetch_rasters(
             arr, src_transform, arr_crs, src_nodata = got
             piece = reproject_to_metric(
                 arr, src_transform, arr_crs, bbox,
-                resolution_m=resolution_m, target_crs=out_crs, src_nodata=src_nodata,
+                resolution_m=read_res, target_crs=out_crs, src_nodata=src_nodata,
             )
         fill = np.isnan(acc) & np.isfinite(piece.heights)
         acc[fill] = piece.heights[fill]

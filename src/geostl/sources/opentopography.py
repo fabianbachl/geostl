@@ -25,7 +25,7 @@ class OpenTopographySource(ElevationSource):
         self,
         bbox: "BoundingBox",
         *,
-        resolution_m: Optional[float] = None,
+        fetch_resolution_m: Optional[float] = None,
         target_crs: Optional[str] = None,
     ) -> "ElevationTile":
-        raise NotImplementedError  # Phase 7
+        raise NotImplementedError  # upcoming

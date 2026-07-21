@@ -47,7 +47,7 @@ def test_fetch_returns_metric_tile(tmp_path):
     dem = tmp_path / "dem.tif"
     _write_synthetic_dem(dem)
 
-    tile = LocalGeoTiffSource(dem).fetch(_region().bbox, resolution_m=50)
+    tile = LocalGeoTiffSource(dem).fetch(_region().bbox, fetch_resolution_m=50)
 
     assert isinstance(tile, ElevationTile)
     assert tile.heights.ndim == 2
@@ -69,7 +69,7 @@ def test_target_crs_override(tmp_path):
     _write_synthetic_dem(dem)
 
     tile = LocalGeoTiffSource(dem).fetch(
-        _region().bbox, resolution_m=50, target_crs="EPSG:31287"
+        _region().bbox, fetch_resolution_m=50, target_crs="EPSG:31287"
     )
     assert tile.crs == "EPSG:31287"
 
@@ -78,7 +78,7 @@ def test_region_to_section_wraps_tile(tmp_path):
     dem = tmp_path / "dem.tif"
     _write_synthetic_dem(dem)
 
-    section = _region().to_section(LocalGeoTiffSource(dem), resolution_m=50)
+    section = _region().to_section(LocalGeoTiffSource(dem), fetch_resolution_m=50)
     assert isinstance(section, Section)
     assert section.tile.crs == "EPSG:32633"
     assert section.tile.heights.ndim == 2
@@ -91,7 +91,7 @@ def test_bbox_outside_raster_raises(tmp_path):
     # Somewhere in the Pacific — no overlap with the Austrian source raster.
     off = Region.from_corners(GeoPoint(0.0, -150.0), GeoPoint(0.1, -149.9))
     with pytest.raises(ValueError):
-        LocalGeoTiffSource(dem).fetch(off.bbox, resolution_m=50)
+        LocalGeoTiffSource(dem).fetch(off.bbox, fetch_resolution_m=50)
 
 
 def test_rotated_source_crs_fully_covers_output(tmp_path):
@@ -120,5 +120,19 @@ def test_rotated_source_crs_fully_covers_output(tmp_path):
     mx, my = (east - west) * 0.2, (north - south) * 0.2
     bbox = BoundingBox(south=south + my, west=west + mx, north=north - my, east=east - mx)
 
-    tile = LocalGeoTiffSource(path).fetch(bbox, resolution_m=100)
+    tile = LocalGeoTiffSource(path).fetch(bbox, fetch_resolution_m=100)
     assert np.isfinite(tile.heights).all()
+
+
+def test_native_read_is_finer_than_capped(tmp_path):
+    """Without fetch_resolution_m the source is read at native detail — finer and
+    more pixels than a coarse cap."""
+    dem = tmp_path / "dem.tif"
+    _write_synthetic_dem(dem)
+    src = LocalGeoTiffSource(dem)
+
+    native = src.fetch(_region().bbox)                          # native (max) detail
+    capped = src.fetch(_region().bbox, fetch_resolution_m=100)  # coarse read
+
+    assert native.heights.size > capped.heights.size
+    assert max(native.pixel_size_m()) < max(capped.pixel_size_m())

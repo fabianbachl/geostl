@@ -73,7 +73,7 @@ def test_section_pipeline_to_stl(tmp_path, synthetic_source):
     from geostl import GeoPoint, Region
 
     region = Region.from_corners(GeoPoint(47.69, 14.03), GeoPoint(47.73, 14.09))
-    section = region.to_section(synthetic_source, resolution_m=25).scale(
+    section = region.to_section(synthetic_source).scale(
         bed_size_mm=100.0, z_exaggeration=1.5, base_thickness_mm=2.0
     )
     out = tmp_path / "sec.stl"
@@ -84,3 +84,30 @@ def test_section_pipeline_to_stl(tmp_path, synthetic_source):
     lo, hi = tm.bounds
     # The longer horizontal side is scaled to the 100 mm bed.
     assert max(float((hi - lo)[0]), float((hi - lo)[1])) == pytest.approx(100.0, rel=1e-3)
+
+
+def test_resolution_mm_downsamples_the_mesh(synthetic_source):
+    """A coarser resolution_mm yields a lighter mesh at the requested pixel size."""
+    from geostl import GeoPoint, Region
+
+    region = Region.from_corners(GeoPoint(47.69, 14.03), GeoPoint(47.73, 14.09))
+    section = region.to_section(synthetic_source).scale(bed_size_mm=100.0)
+
+    full = section.to_mesh()                        # native (32x32)
+    coarse = section.to_mesh(resolution_mm=10.0)    # native printed pixel ~3.2 mm
+
+    assert coarse.faces.shape[0] < full.faces.shape[0]
+    assert _trimesh(coarse).is_watertight
+    # printed column spacing along a row ~ resolution_mm
+    xs = np.unique(np.round(np.asarray(coarse.vertices)[:, 0], 3))
+    assert float(np.median(np.diff(xs))) == pytest.approx(10.0, rel=0.2)
+
+
+def test_resolution_mm_finer_than_source_warns(synthetic_source):
+    from geostl import GeoPoint, Region
+
+    region = Region.from_corners(GeoPoint(47.69, 14.03), GeoPoint(47.73, 14.09))
+    section = region.to_section(synthetic_source).scale(bed_size_mm=100.0)
+    with pytest.warns(RuntimeWarning):
+        m = section.to_mesh(resolution_mm=0.5)  # finer than the native printed pixel
+    assert _trimesh(m).is_watertight

@@ -22,9 +22,10 @@ class ElevationSource(ABC):
         self,
         bbox: "BoundingBox",
         *,
-        resolution_m: Optional[float] = None,
+        fetch_resolution_m: Optional[float] = None,
         target_crs: Optional[str] = None,
     ) -> "ElevationTile":
-        """Return heights covering ``bbox``, warped to ``target_crs``
-        (default: auto-UTM) at approximately ``resolution_m`` per pixel."""
+        """Return heights covering ``bbox``, warped to ``target_crs`` (default:
+        auto-UTM). The source is read at native resolution unless
+        ``fetch_resolution_m`` requests a coarser read (metres/pixel)."""
         raise NotImplementedError

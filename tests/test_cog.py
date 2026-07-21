@@ -15,11 +15,11 @@ def test_single_url_is_vsicurl_prefixed(monkeypatch):
         return "TILE"
 
     monkeypatch.setattr(_raster, "fetch_rasters", fake)
-    out = RemoteCOGSource("https://x/y.tif").fetch(_BBOX, resolution_m=25)
+    out = RemoteCOGSource("https://x/y.tif").fetch(_BBOX, fetch_resolution_m=25)
 
     assert out == "TILE"
     assert captured["sources"] == ["/vsicurl/https://x/y.tif"]
-    assert captured["kwargs"]["resolution_m"] == 25
+    assert captured["kwargs"]["fetch_resolution_m"] == 25
 
 
 def test_multiple_urls_and_idempotent_prefix(monkeypatch):

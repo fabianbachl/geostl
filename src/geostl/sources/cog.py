@@ -35,7 +35,7 @@ class RemoteCOGSource(ElevationSource):
         self,
         bbox: "BoundingBox",
         *,
-        resolution_m: Optional[float] = None,
+        fetch_resolution_m: Optional[float] = None,
         target_crs: Optional[str] = None,
     ) -> "ElevationTile":
         from geostl.sources._raster import fetch_rasters
@@ -44,6 +44,6 @@ class RemoteCOGSource(ElevationSource):
             u if u.startswith("/vsicurl/") else f"/vsicurl/{u}" for u in self.urls
         ]
         return fetch_rasters(
-            sources, bbox, resolution_m=resolution_m, target_crs=target_crs,
-            src_crs=self.src_crs,
+            sources, bbox, fetch_resolution_m=fetch_resolution_m,
+            target_crs=target_crs, src_crs=self.src_crs,
         )

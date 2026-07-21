@@ -103,6 +103,42 @@ def reproject_to_metric(
     )
 
 
+def resample_heights(heights, transform, crs, target_res_m):
+    """Downsample a metric height grid to ``target_res_m`` (same CRS, same extent).
+
+    Area-averaging (anti-aliased) and NaN-aware, via ``rasterio.warp.reproject``.
+    Returns ``(heights, transform)``. Intended for downsampling only —
+    ``target_res_m`` should be >= the grid's current pixel size.
+    """
+    import numpy as np
+    from rasterio.transform import from_origin
+    from rasterio.warp import Resampling, reproject
+
+    src = np.ascontiguousarray(heights, dtype="float32")
+    h, w = src.shape
+    extent_x = w * abs(transform.a)
+    extent_y = h * abs(transform.e)
+    left, top = transform.c, transform.f
+
+    out_w = max(1, int(round(extent_x / target_res_m)))
+    out_h = max(1, int(round(extent_y / target_res_m)))
+    dst_transform = from_origin(left, top, extent_x / out_w, extent_y / out_h)
+
+    dst = np.full((out_h, out_w), np.nan, dtype="float32")
+    reproject(
+        source=src,
+        destination=dst,
+        src_transform=transform,
+        src_crs=crs,
+        src_nodata=float("nan"),
+        dst_transform=dst_transform,
+        dst_crs=crs,
+        dst_nodata=float("nan"),
+        resampling=Resampling.average,
+    )
+    return dst, dst_transform
+
+
 def rectify_geodesic(tile: "ElevationTile", bbox: "BoundingBox") -> "ElevationTile":
     """No-GDAL fallback: approximate a local meter grid via geodesic distances.
 

@@ -35,7 +35,7 @@ def test_scale_is_shared_across_tiles(synthetic_source):
     grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(
         bed_size_mm=100.0, z_exaggeration=1.5
     )
-    assert len({s.dx_mm for s in grid.sections}) == 1
+    assert len({s.scale_xy_mm_per_m for s in grid.sections}) == 1
     assert len({s.z_scale_mm_per_m for s in grid.sections}) == 1
     refs = {s.z_ref_m for s in grid.sections}
     assert len(refs) == 1
@@ -81,10 +81,23 @@ def test_bed_size_is_per_tile(synthetic_source):
     """bed_size_mm sizes the print bed: every tile fits it, largest fills it."""
     bed = 100.0
     grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(bed_size_mm=bed)
-    sizes = [
-        max((s.tile.heights.shape[1] - 1) * s.dx_mm,
-            (s.tile.heights.shape[0] - 1) * s.dy_mm)
-        for s in grid.sections
-    ]
+    sizes = []
+    for s in grid.sections:
+        h, w = s.tile.heights.shape
+        dx_m, dy_m = s.tile.pixel_size_m()
+        sizes.append(max((w - 1) * dx_m, (h - 1) * dy_m) * s.scale_xy_mm_per_m)
     assert max(sizes) == pytest.approx(bed)         # largest tile fills the bed
     assert all(size <= bed + 1e-6 for size in sizes)  # every tile fits the bed
+
+
+def test_grid_resolution_mm_downsample_keeps_seams(synthetic_source):
+    """resolution_mm downsamples the whole region once and re-splits, so the tiles'
+    shared seams stay pixel-identical."""
+    grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(bed_size_mm=100.0)
+    coarse = grid._sections_for(resolution_mm=12.0)  # coarser than the native printed px
+    by = {(s.row, s.col): s.tile.heights for s in coarse}
+
+    assert np.array_equal(by[(0, 0)][:, -1], by[(0, 1)][:, 0])  # vertical seam
+    assert np.array_equal(by[(0, 0)][-1, :], by[(1, 0)][0, :])  # horizontal seam
+    # and it actually downsampled relative to the native tiles
+    assert by[(0, 0)].size < grid.sections[0].tile.heights.size

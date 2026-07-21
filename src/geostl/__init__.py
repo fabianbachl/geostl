@@ -6,9 +6,9 @@ Typical use::
     from geostl.sources import LocalGeoTiffSource
 
     region = Region.from_corners(GeoPoint(47.69, 14.04), GeoPoint(47.72, 14.09))
-    section = region.to_section(LocalGeoTiffSource("assets/DGM_R25.tif"), resolution_m=25)
-    section.scale(bed_size_mm=200, z_exaggeration=1.8, base_thickness_mm=3)
-    section.export_stl("terrain.stl")
+    section = region.to_section(LocalGeoTiffSource("assets/DGM_R25.tif"))
+    section.scale(bed_size_mm=200, z_exaggeration=1.5, base_thickness_mm=3)
+    section.export_stl("terrain.stl", resolution_mm=0.4)
 
 Data-source adapters live in :mod:`geostl.sources` and are imported from there so
 that heavy geo dependencies are only pulled in when actually used.

@@ -26,7 +26,7 @@ def test_single_source(tmp_path):
     p = tmp_path / "a.tif"
     _write(p, west=14.0, north=47.75, width=600, height=400)
     bbox = BoundingBox(south=47.69, west=14.03, north=47.73, east=14.09)
-    tile = fetch_rasters([str(p)], bbox, resolution_m=50)
+    tile = fetch_rasters([str(p)], bbox, fetch_resolution_m=50)
     assert tile.heights.ndim == 2
     assert tile.crs == "EPSG:32633"
     assert np.isfinite(tile.heights).all()
@@ -40,8 +40,8 @@ def test_two_tile_mosaic(tmp_path):
     _write(right, west=14.06, north=47.75, width=300, height=400, fill=200.0)
     bbox = BoundingBox(south=47.69, west=14.02, north=47.73, east=14.10)
 
-    only_left = fetch_rasters([str(left)], bbox, resolution_m=50)
-    both = fetch_rasters([str(left), str(right)], bbox, resolution_m=50)
+    only_left = fetch_rasters([str(left)], bbox, fetch_resolution_m=50)
+    both = fetch_rasters([str(left), str(right)], bbox, fetch_resolution_m=50)
 
     # The mosaic covers strictly more than one tile alone...
     assert np.isfinite(both.heights).mean() > np.isfinite(only_left.heights).mean()
@@ -56,10 +56,10 @@ def test_no_overlap_raises(tmp_path):
     _write(p, west=14.0, north=47.75, width=100, height=100)
     bbox = BoundingBox(south=0.0, west=-150.0, north=0.1, east=-149.9)
     with pytest.raises(ValueError):
-        fetch_rasters([str(p)], bbox, resolution_m=50)
+        fetch_rasters([str(p)], bbox, fetch_resolution_m=50)
 
 
 def test_empty_sources_raises():
     bbox = BoundingBox(south=1.0, west=2.0, north=3.0, east=4.0)
     with pytest.raises(ValueError):
-        fetch_rasters([], bbox, resolution_m=50)
+        fetch_rasters([], bbox, fetch_resolution_m=50)

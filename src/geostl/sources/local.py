@@ -46,11 +46,12 @@ class LocalGeoTiffSource(ElevationSource):
         self,
         bbox: "BoundingBox",
         *,
-        resolution_m: Optional[float] = None,
+        fetch_resolution_m: Optional[float] = None,
         target_crs: Optional[str] = None,
     ) -> "ElevationTile":
         from geostl.sources._raster import fetch_rasters
 
         return fetch_rasters(
-            [str(self.path)], bbox, resolution_m=resolution_m, target_crs=target_crs
+            [str(self.path)], bbox, fetch_resolution_m=fetch_resolution_m,
+            target_crs=target_crs,
         )

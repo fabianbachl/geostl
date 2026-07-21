@@ -22,13 +22,14 @@ Every model follows the same path::
                           |
               to_section  |  to_grid (nx x ny)
                           v
-    ElevationSource.fetch(bbox)  ->  ElevationTile         [one per source]
-                          |            (metres, on a regular metric grid)
-                          v
-    scale  (bed size, vertical exaggeration, base thickness)
+    ElevationSource.fetch(bbox)  ->  ElevationTile   (metres, regular metric grid)
+        [native read, or a coarser fetch_resolution_m cap]
                           |
                           v
-    Mesher  (top surface + walls + base)  ->  watertight STL
+    scale(bed_size_mm, z_exaggeration, base_thickness)   [physical size only]
+                          |
+                          v
+    export_stl / to_mesh(resolution_mm)  ->  Mesher (top + walls + base)  ->  STL
 
 A :class:`~geostl.geometry.GeoPoint` and :class:`~geostl.geometry.BoundingBox`
 describe *where*; a :class:`~geostl.tiling.Region` becomes one
@@ -49,7 +50,7 @@ Different countries publish elevation data through different services, so data
 access is hidden behind a single abstraction. An
 :class:`~geostl.sources.base.ElevationSource` implements exactly one method::
 
-    def fetch(self, bbox, *, resolution_m=None, target_crs=None) -> ElevationTile
+    def fetch(self, bbox, *, fetch_resolution_m=None, target_crs=None) -> ElevationTile
 
 Everything downstream — rectification, scaling, meshing, export — is
 source-agnostic. **Supporting a new country or service means writing one adapter
@@ -137,6 +138,27 @@ millimetres-per-metre), a vertical exaggeration factor, and a solid base thickne
 For a **grid**, ``bed_size_mm`` is the *print-bed* size: one shared scale is chosen
 so the largest tile fits the bed, so every piece is printable while the assembled
 pieces still align.
+
+
+Resolution: read native, print in millimetres
+----------------------------------------------
+
+The three stages own separate concerns, so resolution never means two things at
+once:
+
+- **Fetch** decides *how much source to read* — native (full) detail by default,
+  or a coarser ``fetch_resolution_m`` (metres/pixel) for very large or remote areas.
+- **Scale** is *resolution-independent*: it only fixes how real-world metres map to
+  millimetres.
+- **Mesh** decides the *printed* resolution: :meth:`~geostl.tiling.Section.export_stl`
+  / ``to_mesh`` take a ``resolution_mm`` (one output pixel's size on the print). The
+  mesher receives full-resolution data and downsamples to it; omit it for full
+  detail, and if it is finer than the source supports a warning is issued and the
+  native resolution is used.
+
+For a grid this stays seam-safe: because ``scale`` fixed only resolution-independent
+quantities, :meth:`~geostl.tiling.Grid.export_stl` downsamples the whole region
+**once** and re-splits, so the tiles' shared edges stay pixel-identical.
 
 
 Testable without the network
