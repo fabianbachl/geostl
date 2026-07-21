@@ -10,7 +10,7 @@ either as a single section or as a grid of seam-matched tiles that fit together.
 > fetch → reproject (auto-UTM) → scale → watertight mesh → STL, for both single sections and
 > seam-matched grids. Data sources today: the **Austria (BEV) API**, **local GeoTIFF**, and
 > **remote COG**. Still to come: a global source (OpenTopography), a CLI, and tile connectors.
-> See [DESIGN.md](DESIGN.md) for the architecture and phased roadmap.
+> See the [design docs](docs/design.rst) for the architecture and roadmap.
 
 ## Install (development)
 
@@ -79,7 +79,7 @@ source-agnostic, so adding a country/service means writing just one adapter.
 
 `Region` (WGS84) → `ElevationSource.fetch` → `ElevationTile` (metric grid) → rectify → scale →
 `Mesher` → watertight STL. Supporting a new country/API means writing **one** new
-`ElevationSource` adapter; nothing downstream changes. Full detail in [DESIGN.md](DESIGN.md).
+`ElevationSource` adapter; nothing downstream changes. Full detail in the [design docs](docs/design.rst).
 
 ## Tests & docs
 

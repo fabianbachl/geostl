@@ -13,7 +13,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--version", action="store_true", help="print the geostl version and exit"
     )
-    # Full `section` / `grid` subcommands land in Phase 8.
+    # Full `section` / `grid` subcommands are upcoming.
     return parser
 
 
@@ -24,5 +24,5 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
         print(__version__)
         return 0
-    print("geostl CLI is not implemented yet (Phase 8). See DESIGN.md for the roadmap.")
+    print("geostl CLI is not implemented yet. See the geostl documentation for the roadmap.")
     return 0

@@ -10,8 +10,8 @@ watertight STL — as a single section or a grid of seam-matched tiles that fit 
 Working core, pre-1.0. The full pipeline — fetch → reproject → scale → watertight mesh →
 STL, for single sections and seam-matched grids — is implemented and verified. Data sources
 today: the Austria (BEV) API, local GeoTIFF, and remote COG; a global source
-(OpenTopography), a CLI, and tile connectors are still to come. See the project's
-`DESIGN.md` for the roadmap.
+(OpenTopography), a CLI, and tile connectors are still to come. See {doc}`design` for the
+design principles and roadmap.
 ```
 
 ## How it fits together
@@ -25,6 +25,7 @@ scale → `Mesher` → watertight STL. Supporting a new country/API means writin
 :caption: Contents
 
 quickstart
+design
 api
 ```
 
