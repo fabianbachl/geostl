@@ -26,7 +26,7 @@ def main() -> None:
 
     # fetch_resolution_m caps the (remote) read; the printed pixel size is set at
     # export via resolution_mm.
-    section = region.to_section(source, fetch_resolution_m=3.0).scale(
+    section = region.to_section(source).scale(
         bed_size_mm=200.0,
         z_exaggeration=1.0,
         base_thickness_mm=3.0,

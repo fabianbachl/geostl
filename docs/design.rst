@@ -9,8 +9,8 @@ scales it to a print bed, and writes a watertight STL — either as a single sec
 or as a grid of seam-matched tiles that fit together when printed and assembled.
 
 It deliberately targets rectangular WGS84 regions and watertight solids; slicing /
-G-code, texturing, and a GUI are out of scope. This page describes the principles
-the library is built on; for the concrete API see :doc:`api`.
+G-code are out of scope. This page describes the principles the library is built on; 
+for the concrete API see :doc:`api`.
 
 
 The pipeline
@@ -147,7 +147,8 @@ The three stages own separate concerns, so resolution never means two things at
 once:
 
 - **Fetch** decides *how much source to read* — native (full) detail by default,
-  or a coarser ``fetch_resolution_m`` (metres/pixel) for very large or remote areas.
+  or a coarser ``fetch_resolution_m`` (metres/pixel) for very large areas or highly
+  detailed source material.
 - **Scale** is *resolution-independent*: it only fixes how real-world metres map to
   millimetres.
 - **Mesh** decides the *printed* resolution: :meth:`~geostl.tiling.Section.export_stl`
@@ -221,13 +222,11 @@ Upcoming
 
 - **Global coverage — OpenTopographySource.** Fetch SRTM / Copernicus DEMs from the
   OpenTopography API so regions outside Austria work out of the box.
-- **Geodesic rectification fallback.** A dependency-light approximation
-  (:func:`~geostl.rectify.rectify_geodesic`) for small areas when GDAL / rasterio
-  reprojection is unavailable.
 - **Previews.** ``matplotlib`` 2D heatmap and 3D solid previews behind the ``viz``
   extra.
 - **Command-line interface.** A ``geostl`` command wrapping the section / grid
   workflow.
 - **Tile connectors.** Optional *pin holes* carved into tile edges or bases so
-  printed grid pieces can be pinned together. The wall/base meshing is kept
-  parameterized so this can be added without a redesign.
+  printed grid pieces can be pinned together or mounted to a backplate with threaded
+  inserts. The wall/base meshing is kept parameterized so this can be added without 
+  a redesign.
