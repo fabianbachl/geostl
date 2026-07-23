@@ -1,3 +1,0 @@
-myst_parser
-furo
-setuptools
