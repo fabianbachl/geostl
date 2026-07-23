@@ -36,11 +36,12 @@ def main() -> None:
     region = Region.from_corners(CORNER_A, CORNER_B)
     source = LocalGeoTiffSource(DGM_PATH)
 
-    # Fetch + rectify to a metric grid, then scale for the print bed.
-    section = region.to_section(source, fetch_resolution_m=3).scale(
+    # Fetch, rectify, and scale for the print bed in one step.
+    section = region.to_section(
+        source,
         bed_size_mm=200.0,      # longest horizontal side -> 200 mm
-        z_exaggeration=1.0,     # play up the relief
-        base_thickness_mm=3.0,  # solid base below the lowest point
+        z_exaggeration=1.0,     # vertical exaggeration
+        base_thickness_mm=3.0   # solid base below the lowest point
     )
 
     h, w = section.tile.heights.shape

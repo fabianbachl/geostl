@@ -24,9 +24,11 @@ def main() -> None:
     region = Region.from_corners(CORNER_A, CORNER_B)
     source = AustriaDGMSource()  # 1 m ALS DTM, latest series, from data.bev.gv.at
 
-    # fetch_resolution_m caps the (remote) read; the printed pixel size is set at
-    # export via resolution_mm.
-    section = region.to_section(source).scale(
+    # to_section fetches, rectifies, and scales in one step; the printed pixel size
+    # is set later at export via resolution_mm. (Pass fetch_resolution_m to cap the
+    # remote read for large areas.)
+    section = region.to_section(
+        source,
         bed_size_mm=200.0,
         z_exaggeration=1.0,
         base_thickness_mm=3.0,

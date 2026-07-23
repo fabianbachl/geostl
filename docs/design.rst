@@ -16,17 +16,14 @@ for the concrete API see :doc:`api`.
 The pipeline
 ============
 
-Every model follows the same path::
+The pipeline is a straight flow from WGS84 corners to a printable STL file. 
 
     WGS84 corners  ->  Region
                           |
-              to_section  |  to_grid (nx x ny)
+        to_section / to_grid   [fetch + rectify + scale, in one step]
+        (bed_size_mm / scale_xy; fetch_resolution_m caps the read)
                           v
-    ElevationSource.fetch(bbox)  ->  ElevationTile   (metres, regular metric grid)
-        [native read, or a coarser fetch_resolution_m cap]
-                          |
-                          v
-    scale(bed_size_mm, z_exaggeration, base_thickness)   [physical size only]
+    scaled Section   (or a Grid of nx x ny seam-matched Sections)
                           |
                           v
     export_stl / to_mesh(resolution_mm)  ->  Mesher (top + walls + base)  ->  STL
@@ -133,8 +130,12 @@ asserts watertightness in the tests.
 Scaling to the print bed
 ------------------------
 
-Physical size is resolved from a target print-bed size (or an explicit
-millimetres-per-metre), a vertical exaggeration factor, and a solid base thickness.
+Scaling happens **as part of** the Region → Section conversion: a
+:class:`~geostl.tiling.Section` is always a scaled model, never a bare rectified
+grid. :meth:`~geostl.tiling.Region.to_section` / :meth:`~geostl.tiling.Region.to_grid`
+take a target print-bed size (or an explicit millimetres-per-metre), a vertical
+exaggeration factor, and a base thickness; :meth:`~geostl.tiling.Section.rescale` /
+:meth:`~geostl.tiling.Grid.rescale` re-apply a different scale without re-fetching.
 For a **grid**, ``bed_size_mm`` is the *print-bed* size: one shared scale is chosen
 so the largest tile fits the bed, so every piece is printable while the assembled
 pieces still align.
@@ -143,19 +144,18 @@ pieces still align.
 Resolution: read native, print in millimetres
 ----------------------------------------------
 
-The three stages own separate concerns, so resolution never means two things at
-once:
+Fetching, scaling, and meshing stay separate concerns, so resolution has two meanings
+within the pipeline:
 
 - **Fetch** decides *how much source to read* — native (full) detail by default,
   or a coarser ``fetch_resolution_m`` (metres/pixel) for very large areas or highly
-  detailed source material.
-- **Scale** is *resolution-independent*: it only fixes how real-world metres map to
-  millimetres.
+  detailed source material. It is reccommended to fetch more than the print resolution,
+  so the mesher can downsample.
 - **Mesh** decides the *printed* resolution: :meth:`~geostl.tiling.Section.export_stl`
   / ``to_mesh`` take a ``resolution_mm`` (one output pixel's size on the print). The
   mesher receives full-resolution data and downsamples to it; omit it for full
   detail, and if it is finer than the source supports a warning is issued and the
-  native resolution is used.
+  available resolution is used.
 
 For a grid this stays seam-safe: because ``scale`` fixed only resolution-independent
 quantities, :meth:`~geostl.tiling.Grid.export_stl` downsamples the whole region

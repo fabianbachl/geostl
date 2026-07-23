@@ -1,7 +1,7 @@
 """Tests for the pure-Python WGS84 geometry helpers."""
 import pytest
 
-from geostl.geometry import BoundingBox, GeoPoint, utm_epsg_for
+from geostl.positioning import BoundingBox, GeoPoint, utm_epsg_for
 
 
 def test_from_corners_normalizes_order():

@@ -8,7 +8,7 @@ from geostl.sources.base import ElevationSource
 
 if TYPE_CHECKING:
     from geostl.elevation import ElevationTile
-    from geostl.geometry import BoundingBox
+    from geostl.positioning import BoundingBox
 
 
 class LocalGeoTiffSource(ElevationSource):

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "geostl"
-version = "0.0.1"
+version = "0.1.0"
 description = "Import public elevation data (GeoTIFF/DEM) and produce 3D-printable terrain STL sections."
 readme = "README.md"
 requires-python = ">=3.11"

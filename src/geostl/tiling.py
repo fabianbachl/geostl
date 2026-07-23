@@ -1,13 +1,11 @@
-"""Region + Grid: from a WGS84 rectangle to one or many mesh-ready Sections.
+"""Region + Grid: from a WGS84 rectangle to one or more scaled, mesh-ready Sections.
 
-Three stages, each owning one concern:
-
-* **fetch** (``Region.to_section`` / ``to_grid``) — how much source to read
-  (``fetch_resolution_m``; native by default),
-* **scale** (``Section.scale`` / ``Grid.scale``) — physical size only, in mm per
-  real metre (resolution-independent),
-* **mesh** (``export_stl`` / ``to_mesh``) — the printed model resolution
-  (``resolution_mm``; full detail by default).
+* :meth:`Region.to_section` / :meth:`Region.to_grid` fetch, rectify, **and scale** a
+  region in one step (``fetch_resolution_m`` controls how much source to read;
+  ``bed_size_mm`` / ``scale_xy`` set the physical size). A Section is therefore always
+  a scaled model; :meth:`Section.rescale` / :meth:`Grid.rescale` re-scale one in place.
+* :meth:`Section.export_stl` / ``to_mesh`` build the STL; ``resolution_mm`` sets the
+  printed pixel size (full detail by default).
 """
 from __future__ import annotations
 
@@ -18,7 +16,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 import numpy as np
 
-from geostl.geometry import BoundingBox, GeoPoint
+from geostl.positioning import BoundingBox, GeoPoint
 
 if TYPE_CHECKING:
     from geostl.elevation import ElevationTile
@@ -56,64 +54,106 @@ def _split_tile(tile: "ElevationTile", nx: int, ny: int) -> List["Section"]:
 
 
 class Region:
-    """A geographic rectangle (WGS84) the user wants to model."""
+    """A geographic rectangle (WGS84) that can be fetched and rectified into one or more Sections.
+    """
 
     def __init__(self, bbox: BoundingBox):
         self.bbox = bbox
 
     @classmethod
-    def from_corners(cls, a: GeoPoint, b: GeoPoint) -> "Region":
+    def from_corners(cls, a: GeoPoint, b: GeoPoint) -> Region:
         return cls(BoundingBox.from_corners(a, b))
 
     def to_section(
         self,
-        source: "ElevationSource",
+        source: ElevationSource,
         *,
+        bed_size_mm: Optional[float] = None,
+        scale_xy: Optional[float] = None,
+        z_exaggeration: float = 1.0,
+        base_thickness_mm: float = 3.0,
         fetch_resolution_m: Optional[float] = None,
         target_crs: Optional[str] = None,
-    ) -> "Section":
-        """Fetch + rectify this whole region as a single :class:`Section`.
+    ) -> Section:
+        """Fetch, rectify, and scale this whole region into a :class:`Section`.
 
-        The source is read at native resolution by default; ``fetch_resolution_m``
-        reads a coarser overview (metres/pixel) for large areas. The printed model
-        resolution is chosen later, at :meth:`Section.export_stl` / ``to_mesh``.
+        Give exactly one of ``bed_size_mm`` (longest side -> that many mm) or
+        ``scale_xy`` (mm per real metre); ``z_exaggeration`` and ``base_thickness_mm``
+        complete the physical scale. The source is read at native resolution unless
+        ``fetch_resolution_m`` requests a coarser overview. The printed pixel size is
+        chosen later at :meth:`Section.export_stl`; use :meth:`Section.rescale` to
+        re-scale without re-fetching.
+
+        :param source: the elevation source to fetch from
+        :param bed_size_mm: the print-bed size; the scale is chosen so the longest
+            side of the region maps to ``bed_size_mm``. Mutually exclusive with ``scale_xy``.
+        :param scale_xy: the physical scale (mm per real metre); mutually exclusive with ``bed_size_mm``.
+        :param z_exaggeration: how much to exaggerate the relief (1.0 = true scale).
+        :param base_thickness_mm: how thick the solid base below the lowest point should be (mm).
+        :param fetch_resolution_m: how coarse to read the source (metres/pixel); native resolution by default.
+        :param target_crs: the target CRS for the rectified tile; if None, the source's native CRS is used.
         """
         tile = source.fetch(
             self.bbox, fetch_resolution_m=fetch_resolution_m, target_crs=target_crs
         )
-        return Section(tile=tile)
+        return Section(tile=tile).rescale(
+            bed_size_mm=bed_size_mm,
+            scale_xy=scale_xy,
+            z_exaggeration=z_exaggeration,
+            base_thickness_mm=base_thickness_mm,
+        )
 
     def to_grid(
         self,
-        source: "ElevationSource",
+        source: ElevationSource,
         *,
         nx: int,
         ny: int,
+        bed_size_mm: Optional[float] = None,
+        scale_xy: Optional[float] = None,
+        z_exaggeration: float = 1.0,
+        base_thickness_mm: float = 3.0,
         fetch_resolution_m: Optional[float] = None,
         target_crs: Optional[str] = None,
-    ) -> "Grid":
-        """Fetch the whole region in ONE read, then split into ``nx*ny`` tiles.
+    ) -> Grid:
+        """Fetch the whole region in ONE read, split into ``nx*ny`` tiles, and scale.
 
         The region is fetched once (native resolution unless ``fetch_resolution_m``
         is given) and sliced so adjacent tiles share their boundary row/column, so
-        the printed tiles butt together. Call :meth:`Grid.scale` for the shared
-        scale, then :meth:`Grid.export_stl` (with an optional ``resolution_mm``).
+        the printed tiles butt together. One shared scale is applied to every tile
+        (``bed_size_mm`` is the per-tile print-bed size). Use :meth:`Grid.rescale` to
+        re-scale, then :meth:`Grid.export_stl` (with an optional ``resolution_mm``).
+        :param source: the elevation source to fetch from
+        :param nx: number of tiles along the x (longitude) axis
+        :param ny: number of tiles along the y (latitude) axis
+        :param bed_size_mm: the print-bed size; the scale is chosen so the longest
+            side of the largest tile maps to ``bed_size_mm``. Mutually exclusive with ``scale_xy``.
+        :param scale_xy: the physical scale (mm per real metre); mutually exclusive with ``bed_size_mm``.
+        :param z_exaggeration: how much to exaggerate the relief (1.0 = true scale).
+        :param base_thickness_mm: how thick the solid base below the lowest point should be (mm).
+        :param fetch_resolution_m: how coarse to read the source (metres/pixel); native resolution by default.
+        :param target_crs: the target CRS for the rectified tile; if None, the source's native CRS is used.
         """
         tile = source.fetch(
             self.bbox, fetch_resolution_m=fetch_resolution_m, target_crs=target_crs
         )
         sections = _split_tile(tile, nx, ny)
-        return Grid(sections=sections, nx=nx, ny=ny, full_tile=tile)
+        return Grid(sections=sections, nx=nx, ny=ny, full_tile=tile).rescale(
+            bed_size_mm=bed_size_mm,
+            scale_xy=scale_xy,
+            z_exaggeration=z_exaggeration,
+            base_thickness_mm=base_thickness_mm,
+        )
 
 
 @dataclass
 class Section:
     """A single rectified region, ready to scale and mesh."""
 
-    tile: "ElevationTile"
+    tile: ElevationTile
     row: int = 0
     col: int = 0
-    # Physical scale (resolution-independent); None until .scale() resolves it.
+    # Physical scale (resolution-independent); set by to_section / rescale.
     scale_xy_mm_per_m: Optional[float] = None
     z_scale_mm_per_m: Optional[float] = None
     base_thickness_mm: Optional[float] = None
@@ -121,18 +161,19 @@ class Section:
     # Grid.scale sets it to the whole-region minimum so tiles align in z.
     z_ref_m: Optional[float] = None
 
-    def scale(
-        self,
-        *,
+    def rescale(self, *,
         bed_size_mm: Optional[float] = None,
         scale_xy: Optional[float] = None,
         z_exaggeration: float = 1.0,
         base_thickness_mm: float = 3.0,
-    ) -> "Section":
+    ) -> Section:
         """Resolve the physical scale (mm per real metre, z, base). Chainable.
 
-        Resolution-independent: it fixes how real-world metres map to millimetres,
-        not how dense the mesh is (that is chosen at meshing via ``resolution_mm``).
+        :param bed_size_mm: the print-bed size; the scale is chosen so the longest
+            side of this tile maps to ``bed_size_mm``. Mutually exclusive with ``scale_xy``.
+        :param scale_xy: the physical scale (mm per real metre); mutually exclusive with ``bed_size_mm``.
+        :param z_exaggeration: how much to exaggerate the relief (1.0 = true scale).
+        :param base_thickness_mm: how thick the solid base below the lowest point should be (mm).
         """
         from geostl.scaling import resolve_scale
 
@@ -151,7 +192,7 @@ class Section:
         self.base_thickness_mm = spec.base_thickness_mm
         return self
 
-    def to_mesh(self, resolution_mm: Optional[float] = None) -> "TriangleMesh":
+    def to_mesh(self, resolution_mm: Optional[float] = None) -> TriangleMesh:
         """Build the watertight mesh (top surface + walls + base).
 
         Receives the tile's full-resolution data and, when ``resolution_mm`` is
@@ -165,7 +206,7 @@ class Section:
         from geostl.rectify import resample_heights
 
         if self.scale_xy_mm_per_m is None or self.z_scale_mm_per_m is None:
-            raise RuntimeError("call .scale(...) before meshing this Section")
+            raise RuntimeError("Section is not scaled; use Region.to_section or .rescale(...)")
 
         heights = self.tile.heights
         transform, crs = self.tile.transform, self.tile.crs
@@ -210,27 +251,29 @@ class Grid:
     sections: List[Section] = field(default_factory=list)
     nx: int = 0
     ny: int = 0
-    full_tile: Optional["ElevationTile"] = None
-    # Shared physical scale (resolution-independent); None until .scale().
+    full_tile: Optional[ElevationTile] = None
+    # Shared physical scale (resolution-independent); set by to_grid / rescale.
     scale_xy_mm_per_m: Optional[float] = None
     z_scale_mm_per_m: Optional[float] = None
     base_thickness_mm: Optional[float] = None
     z_ref_m: Optional[float] = None
 
-    def scale(
+    def rescale(
         self,
         *,
         bed_size_mm: Optional[float] = None,
         scale_xy: Optional[float] = None,
         z_exaggeration: float = 1.0,
         base_thickness_mm: float = 3.0,
-    ) -> "Grid":
+    ) -> Grid:
         """Resolve one shared physical scale + z-reference for every tile.
 
-        ``bed_size_mm`` is the **print-bed size**: the scale is chosen so the
-        largest tile's longer side maps to ``bed_size_mm``, so every tile fits the
-        bed. The scale is resolution-independent; the printed model resolution is
-        chosen at :meth:`export_stl` via ``resolution_mm``.
+        :param bed_size_mm: the **print-bed size**: the scale is chosen so the
+            largest tile's longer side maps to ``bed_size_mm``, so every tile fits the
+            bed.
+        :param scale_xy: the physical scale (mm per real metre); mutually exclusive with ``bed_size_mm``.
+        :param z_exaggeration: how much to exaggerate the relief (1.0 = true scale).
+        :param base_thickness_mm: how thick the solid base below the lowest point should be (mm).
         """
         from geostl.scaling import resolve_scale
 
@@ -264,13 +307,13 @@ class Grid:
             self._apply_scale(s)
         return self
 
-    def _apply_scale(self, section: "Section") -> None:
+    def _apply_scale(self, section: Section) -> None:
         section.scale_xy_mm_per_m = self.scale_xy_mm_per_m
         section.z_scale_mm_per_m = self.z_scale_mm_per_m
         section.base_thickness_mm = self.base_thickness_mm
         section.z_ref_m = self.z_ref_m
 
-    def _sections_for(self, resolution_mm: Optional[float]) -> List["Section"]:
+    def _sections_for(self, resolution_mm: Optional[float]) -> List[Section]:
         """Sections to mesh: the native tiles, or — for a coarser ``resolution_mm``
         — the whole region downsampled once and re-split so seams stay identical."""
         if resolution_mm is None:
@@ -314,7 +357,7 @@ class Grid:
         the tiles' seams stay pixel-identical. Returns the list of written paths.
         """
         if self.scale_xy_mm_per_m is None:
-            raise RuntimeError("call .scale(...) on the Grid before exporting")
+            raise RuntimeError("Grid is not scaled; use Region.to_grid or .rescale(...)")
 
         directory = Path(directory)
         directory.mkdir(parents=True, exist_ok=True)

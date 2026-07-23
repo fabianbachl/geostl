@@ -28,13 +28,13 @@ region = Region.from_corners(GeoPoint(47.691855, 14.039583),
 source = AustriaDGMSource()  # 1 m ALS terrain model from data.bev.gv.at
 
 # Single section -> one watertight STL
-section = region.to_section(source, fetch_resolution_m=3)    # reduction in fetch resolution reccomended for download speed
-section.scale(bed_size_mm=200, z_exaggeration=1.0, base_thickness_mm=3)
+section = region.to_section(source, bed_size_mm=200, z_exaggeration=1.0,
+                            base_thickness_mm=3, fetch_resolution_m=3)  # coarse read for speed
 section.export_stl("terrain.stl", resolution_mm=0.4)   # 0.4 mm printed pixels
 
 # ...or split a region into a 3x3 grid of seam-matched, tileable pieces
-grid = region.to_grid(source, nx=3, ny=3)
-grid.scale(bed_size_mm=200, z_exaggeration=1.0, base_thickness_mm=3)
+grid = region.to_grid(source, nx=3, ny=3, bed_size_mm=200, z_exaggeration=1.0,
+                      base_thickness_mm=3)
 grid.export_stl("out/", prefix="tile", resolution_mm=0.4)   # out/tile_r0_c0.stl ...
 
 # ...both cases will produce tiles with their longest side beeing 200mm in length
@@ -82,7 +82,7 @@ python -m sphinx -b html docs docs/_build/html    # build the API docs (needs sp
 
 ## Contribution
 
-I open to contributions to this project, I am a passionate mountaineer based in Austria, so getting the Austrian
+I am glad about any contributions to this project, I am a passionate mountaineer based in Austria, so getting the Austrian
 high-resolution data up and running was my highest priority. Implementing a wider array of sources will greatly
 elevate the usefulness of this library.
 

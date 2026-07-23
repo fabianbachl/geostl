@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Optional, Sequence
 
 if TYPE_CHECKING:
     from geostl.elevation import ElevationTile
-    from geostl.geometry import BoundingBox
+    from geostl.positioning import BoundingBox
 
 
 def _read_window(ds, crs, out_crs, out_bounds, out_width, out_height, pad=3):
@@ -96,7 +96,7 @@ def fetch_rasters(
     import rasterio
 
     from geostl.elevation import ElevationTile
-    from geostl.geometry import utm_epsg_for
+    from geostl.positioning import utm_epsg_for
     from geostl.rectify import reproject_to_metric, resolve_output_grid
 
     if not sources:

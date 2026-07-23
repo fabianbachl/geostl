@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from affine import Affine
 
     from geostl.elevation import ElevationTile
-    from geostl.geometry import BoundingBox
+    from geostl.positioning import BoundingBox
 
 
 def resolve_output_grid(
@@ -33,7 +33,7 @@ def resolve_output_grid(
     from rasterio.transform import from_origin
     from rasterio.warp import transform_bounds
 
-    from geostl.geometry import utm_epsg_for
+    from geostl.positioning import utm_epsg_for
 
     if resolution_m is None:
         resolution_m = 30.0

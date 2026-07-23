@@ -1,6 +1,6 @@
 """Tests for RemoteCOGSource URL handling + delegation (no network)."""
 import geostl.sources._raster as _raster
-from geostl.geometry import BoundingBox
+from geostl.positioning import BoundingBox
 from geostl.sources import RemoteCOGSource
 
 _BBOX = BoundingBox(south=1.0, west=2.0, north=3.0, east=4.0)

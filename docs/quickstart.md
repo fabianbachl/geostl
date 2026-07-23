@@ -24,8 +24,8 @@ region = Region.from_corners(GeoPoint(47.691855, 14.039583),
                              GeoPoint(47.723852, 14.089708))
 source = AustriaDGMSource()  # 1 m ALS terrain model from data.bev.gv.at
 
-section = region.to_section(source)            # native detail; fetch_resolution_m caps big reads
-section.scale(bed_size_mm=200, z_exaggeration=1.0, base_thickness_mm=3)
+section = region.to_section(source, bed_size_mm=200, z_exaggeration=1.0,
+                            base_thickness_mm=3)   # fetch_resolution_m=… caps big reads
 section.export_stl("terrain.stl", resolution_mm=0.4)   # 0.4 mm printed pixels
 ```
 
@@ -43,8 +43,8 @@ source = RemoteCOGSource("https://example.com/dem.tif")  # any remote COG
 ## Build a tiled grid
 
 ```python
-grid = region.to_grid(source, nx=3, ny=3)
-grid.scale(bed_size_mm=200, z_exaggeration=1.0, base_thickness_mm=3)
+grid = region.to_grid(source, nx=3, ny=3, bed_size_mm=200, z_exaggeration=1.0,
+                      base_thickness_mm=3)
 grid.export_stl("out/", prefix="tile", resolution_mm=0.4)   # out/tile_r0_c0.stl ...
 ```
 

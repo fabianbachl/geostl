@@ -78,8 +78,11 @@ def test_region_to_section_wraps_tile(tmp_path):
     dem = tmp_path / "dem.tif"
     _write_synthetic_dem(dem)
 
-    section = _region().to_section(LocalGeoTiffSource(dem), fetch_resolution_m=50)
+    section = _region().to_section(
+        LocalGeoTiffSource(dem), bed_size_mm=200.0, fetch_resolution_m=50
+    )
     assert isinstance(section, Section)
+    assert section.scale_xy_mm_per_m is not None  # born scaled
     assert section.tile.crs == "EPSG:32633"
     assert section.tile.heights.ndim == 2
 
@@ -100,7 +103,7 @@ def test_rotated_source_crs_fully_covers_output(tmp_path):
     from rasterio.transform import from_origin
     from rasterio.warp import transform_bounds
 
-    from geostl.geometry import BoundingBox
+    from geostl.positioning import BoundingBox
 
     path = tmp_path / "lambert.tif"
     res, n = 50.0, 500

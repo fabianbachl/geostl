@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from geostl.elevation import ElevationTile
-    from geostl.geometry import BoundingBox
+    from geostl.positioning import BoundingBox
 
 
 class ElevationSource(ABC):

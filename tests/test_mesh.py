@@ -73,8 +73,8 @@ def test_section_pipeline_to_stl(tmp_path, synthetic_source):
     from geostl import GeoPoint, Region
 
     region = Region.from_corners(GeoPoint(47.69, 14.03), GeoPoint(47.73, 14.09))
-    section = region.to_section(synthetic_source).scale(
-        bed_size_mm=100.0, z_exaggeration=1.5, base_thickness_mm=2.0
+    section = region.to_section(
+        synthetic_source, bed_size_mm=100.0, z_exaggeration=1.5, base_thickness_mm=2.0
     )
     out = tmp_path / "sec.stl"
     section.export_stl(out)
@@ -91,7 +91,7 @@ def test_resolution_mm_downsamples_the_mesh(synthetic_source):
     from geostl import GeoPoint, Region
 
     region = Region.from_corners(GeoPoint(47.69, 14.03), GeoPoint(47.73, 14.09))
-    section = region.to_section(synthetic_source).scale(bed_size_mm=100.0)
+    section = region.to_section(synthetic_source, bed_size_mm=100.0)
 
     full = section.to_mesh()                        # native (32x32)
     coarse = section.to_mesh(resolution_mm=10.0)    # native printed pixel ~3.2 mm
@@ -107,7 +107,7 @@ def test_resolution_mm_finer_than_source_warns(synthetic_source):
     from geostl import GeoPoint, Region
 
     region = Region.from_corners(GeoPoint(47.69, 14.03), GeoPoint(47.73, 14.09))
-    section = region.to_section(synthetic_source).scale(bed_size_mm=100.0)
+    section = region.to_section(synthetic_source, bed_size_mm=100.0)
     with pytest.warns(RuntimeWarning):
         m = section.to_mesh(resolution_mm=0.5)  # finer than the native printed pixel
     assert _trimesh(m).is_watertight

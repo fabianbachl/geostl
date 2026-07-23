@@ -43,7 +43,8 @@ def main() -> None:
     # One native read for the whole region, split into NX*NY seam-matched tiles.
     # (For a fine/remote source over a big area, pass fetch_resolution_m to cap
     # the read; the 25 m local DGM is cheap to read whole.)
-    grid = region.to_grid(source, nx=NX, ny=NY).scale(
+    grid = region.to_grid(
+        source, nx=NX, ny=NY,
         bed_size_mm=240.0,      # each tile fits a 240 mm print bed
         z_exaggeration=1.0,     # true vertical scale
         base_thickness_mm=3.0,

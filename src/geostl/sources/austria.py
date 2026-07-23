@@ -9,7 +9,7 @@ from geostl.sources.base import ElevationSource
 
 if TYPE_CHECKING:
     from geostl.elevation import ElevationTile
-    from geostl.geometry import BoundingBox
+    from geostl.positioning import BoundingBox
 
 _ATOM = "http://www.w3.org/2005/Atom"
 _GEORSS = "http://www.georss.org/georss"

@@ -4,7 +4,7 @@ import pytest
 import rasterio
 from rasterio.transform import from_origin
 
-from geostl.geometry import BoundingBox
+from geostl.positioning import BoundingBox
 from geostl.sources._raster import fetch_rasters
 
 

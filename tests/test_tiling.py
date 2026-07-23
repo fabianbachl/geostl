@@ -12,7 +12,7 @@ def _region() -> Region:
 
 
 def test_grid_shape_and_labels(synthetic_source):
-    grid = _region().to_grid(synthetic_source, nx=2, ny=3)
+    grid = _region().to_grid(synthetic_source, nx=2, ny=3, bed_size_mm=100.0)
     assert isinstance(grid, Grid)
     assert (grid.nx, grid.ny) == (2, 3)
     assert len(grid.sections) == 6
@@ -23,7 +23,7 @@ def test_grid_shape_and_labels(synthetic_source):
 
 
 def test_seams_share_identical_edges(synthetic_source):
-    grid = _region().to_grid(synthetic_source, nx=2, ny=2)
+    grid = _region().to_grid(synthetic_source, nx=2, ny=2, bed_size_mm=100.0)
     by = {(s.row, s.col): s.tile.heights for s in grid.sections}
     # vertical seam: east column of (0,0) == west column of (0,1)
     assert np.array_equal(by[(0, 0)][:, -1], by[(0, 1)][:, 0])
@@ -32,8 +32,8 @@ def test_seams_share_identical_edges(synthetic_source):
 
 
 def test_scale_is_shared_across_tiles(synthetic_source):
-    grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(
-        bed_size_mm=100.0, z_exaggeration=1.5
+    grid = _region().to_grid(
+        synthetic_source, nx=2, ny=2, bed_size_mm=100.0, z_exaggeration=1.5
     )
     assert len({s.scale_xy_mm_per_m for s in grid.sections}) == 1
     assert len({s.z_scale_mm_per_m for s in grid.sections}) == 1
@@ -44,8 +44,8 @@ def test_scale_is_shared_across_tiles(synthetic_source):
 
 def test_shared_seam_z_matches_after_scaling(synthetic_source):
     """The printable guarantee: shared-seam top-surface heights are equal in mm."""
-    grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(
-        bed_size_mm=100.0, z_exaggeration=2.0
+    grid = _region().to_grid(
+        synthetic_source, nx=2, ny=2, bed_size_mm=100.0, z_exaggeration=2.0
     )
     by = {(s.row, s.col): s for s in grid.sections}
     a, b = by[(0, 0)], by[(0, 1)]
@@ -55,7 +55,7 @@ def test_shared_seam_z_matches_after_scaling(synthetic_source):
 
 
 def test_grid_export_writes_watertight_tiles(tmp_path, synthetic_source):
-    grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(bed_size_mm=100.0)
+    grid = _region().to_grid(synthetic_source, nx=2, ny=2, bed_size_mm=100.0)
     paths = grid.export_stl(tmp_path, prefix="t")
     assert {p.name for p in paths} == {
         "t_r0_c0.stl", "t_r0_c1.stl", "t_r1_c0.stl", "t_r1_c1.stl"
@@ -65,22 +65,36 @@ def test_grid_export_writes_watertight_tiles(tmp_path, synthetic_source):
         assert trimesh.load(str(p)).is_watertight
 
 
-def test_export_requires_scale(tmp_path, synthetic_source):
-    grid = _region().to_grid(synthetic_source, nx=2, ny=2)
+def test_to_grid_requires_a_scale(synthetic_source):
+    # A Section/Grid is always a scaled model: to_grid needs bed_size_mm or scale_xy.
+    with pytest.raises(ValueError):
+        _region().to_grid(synthetic_source, nx=2, ny=2)
+
+
+def test_bare_grid_export_requires_scale(tmp_path):
+    # A hand-constructed, unscaled Grid still refuses to export.
     with pytest.raises(RuntimeError):
-        grid.export_stl(tmp_path)
+        Grid().export_stl(tmp_path)
+
+
+def test_grid_rescale_changes_scale(synthetic_source):
+    grid = _region().to_grid(synthetic_source, nx=2, ny=2, bed_size_mm=100.0)
+    before = grid.scale_xy_mm_per_m
+    grid.rescale(bed_size_mm=200.0)  # double the bed -> double the mm-per-metre
+    assert grid.scale_xy_mm_per_m == pytest.approx(2 * before)
+    assert all(s.scale_xy_mm_per_m == grid.scale_xy_mm_per_m for s in grid.sections)
 
 
 def test_too_many_tiles_raises(synthetic_source):
     # A 32x32 source cannot split into 40 tiles on an axis without collapsing edges.
     with pytest.raises(ValueError):
-        _region().to_grid(synthetic_source, nx=40, ny=1)
+        _region().to_grid(synthetic_source, nx=40, ny=1, bed_size_mm=100.0)
 
 
 def test_bed_size_is_per_tile(synthetic_source):
     """bed_size_mm sizes the print bed: every tile fits it, largest fills it."""
     bed = 100.0
-    grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(bed_size_mm=bed)
+    grid = _region().to_grid(synthetic_source, nx=2, ny=2, bed_size_mm=bed)
     sizes = []
     for s in grid.sections:
         h, w = s.tile.heights.shape
@@ -93,7 +107,7 @@ def test_bed_size_is_per_tile(synthetic_source):
 def test_grid_resolution_mm_downsample_keeps_seams(synthetic_source):
     """resolution_mm downsamples the whole region once and re-splits, so the tiles'
     shared seams stay pixel-identical."""
-    grid = _region().to_grid(synthetic_source, nx=2, ny=2).scale(bed_size_mm=100.0)
+    grid = _region().to_grid(synthetic_source, nx=2, ny=2, bed_size_mm=100.0)
     coarse = grid._sections_for(resolution_mm=12.0)  # coarser than the native printed px
     by = {(s.row, s.col): s.tile.heights for s in coarse}
 

@@ -9,11 +9,25 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from geostl.elevation import ElevationTile
-    from geostl.tiling import Section
+    from geostl.tiling import Section, Grid, Region
 
 
-def preview_heatmap(tile: "ElevationTile"):
-    """2D ``pcolormesh`` preview of an elevation tile (ported from the notebook)."""
+def preview_region(region: "Region"):
+    """2D ``pcolormesh`` preview of a region.
+    Plot shows original dimensions and fetched resolution.
+    """
+    raise NotImplementedError  # Phase 8
+
+def preview_grid(grid: "Grid"):
+    """2D ``pcolormesh`` preview of a grid of sections.
+    Plot shows model dimensions.
+    """
+    raise NotImplementedError  # Phase 8
+
+def preview_section(section: "Section"):
+    """2D ``pcolormesh`` preview of a section.
+    Plot shows model dimensions.
+    """
     raise NotImplementedError  # Phase 8
 
 

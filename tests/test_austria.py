@@ -2,7 +2,7 @@
 import pytest
 import requests
 
-from geostl.geometry import BoundingBox
+from geostl.positioning import BoundingBox
 from geostl.sources.austria import (
     AustriaDGMSource,
     _intersects,
