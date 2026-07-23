@@ -6,7 +6,7 @@ Pick a rectangle on the earth in WGS84 coordinates; `geostl` fetches the height 
 it, rectifies it to a metric grid, scales it to your print bed, and writes a watertight STL —
 either as a single section or as a grid of seam-matched tiles that fit together.
 
-> See the [design docs](docs/design.rst) for the architecture and roadmap.
+> See the [design docs]([https://geostl.readthedocs.io/en/latest/design.html]) for the architecture and roadmap.
 
 ## Install (development)
 
