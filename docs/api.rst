@@ -1,10 +1,10 @@
 API reference
 =============
 
-Geometry
---------
+Positioning
+-----------
 
-.. automodule:: geostl.geometry
+.. automodule:: geostl.positioning
    :members:
 
 Elevation tiles
@@ -49,10 +49,19 @@ Data sources
 .. automodule:: geostl.sources.cog
    :members:
 
+.. automodule:: geostl.sources.wcs
+   :members:
+
 .. automodule:: geostl.sources.opentopography
    :members:
 
 .. automodule:: geostl.sources.austria
+   :members:
+
+.. automodule:: geostl.sources.germany
+   :members:
+
+.. automodule:: geostl.sources.italy
    :members:
 
 Command-line interface

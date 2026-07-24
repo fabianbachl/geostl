@@ -11,13 +11,19 @@ adapter's ``fetch`` so importing this package stays cheap.
 from geostl.sources.austria import AustriaDGMSource
 from geostl.sources.base import ElevationSource
 from geostl.sources.cog import RemoteCOGSource
+from geostl.sources.germany import BavariaDGMSource
+from geostl.sources.italy import SouthTyrolDGMSource
 from geostl.sources.local import LocalGeoTiffSource
 from geostl.sources.opentopography import OpenTopographySource
+from geostl.sources.wcs import WCSSource
 
 __all__ = [
     "ElevationSource",
     "LocalGeoTiffSource",
     "RemoteCOGSource",
+    "WCSSource",
     "OpenTopographySource",
     "AustriaDGMSource",
+    "BavariaDGMSource",
+    "SouthTyrolDGMSource",
 ]

@@ -97,10 +97,14 @@ Reading a window, reprojecting it, and mosaicking several rasters is written onc
 and reused by every file/URL-based source.
 :class:`~geostl.sources.local.LocalGeoTiffSource` (a local file),
 :class:`~geostl.sources.cog.RemoteCOGSource` (one or many remote COGs via
-``/vsicurl``), and :class:`~geostl.sources.austria.AustriaDGMSource` (which
-discovers the covering national tiles and then delegates to ``RemoteCOGSource``)
-all funnel through the same machinery. There is no second copy of the
-read / reproject / mosaic logic to drift out of sync.
+``/vsicurl``), the national tile sources
+(:class:`~geostl.sources.austria.AustriaDGMSource` and
+:class:`~geostl.sources.germany.BavariaDGMSource`, which discover the covering
+tiles and then delegate to ``RemoteCOGSource``), and even
+:class:`~geostl.sources.wcs.WCSSource` (which hands the server-cropped GeoTIFF to
+the same code through GDAL's in-memory filesystem) all funnel through the same
+machinery. There is no second copy of the read / reproject / mosaic logic to drift
+out of sync.
 
 
 Seam-matched tiling
@@ -200,6 +204,20 @@ one is a self-contained adapter.
      - Austria's national 1 m ALS DTM/DSM (BEV), discovered from its INSPIRE ATOM
        service and read as EPSG:3035 COG tiles via ``/vsicurl`` — no local file
        needed (CC-BY-4.0).
+   * - :class:`~geostl.sources.germany.BavariaDGMSource`
+     - Available
+     - Bavaria's national 1 m LiDAR DGM1 (LDBV), read as 1 km EPSG:25832 GeoTIFF
+       tiles whose URLs are derived from the bbox; covers the Bavarian Alps —
+       no local file needed.
+   * - :class:`~geostl.sources.italy.SouthTyrolDGMSource`
+     - Available
+     - South Tyrol's LiDAR DTM (Province of Bolzano), fetched via its WCS and read
+       through the shared path; 2.5 m province-wide (0.5 m where flown), covering
+       the Dolomites and Ortler (CC0).
+   * - :class:`~geostl.sources.wcs.WCSSource`
+     - Available
+     - Generic OGC Web Coverage Service (WCS 2.0.1) client: server-side crop to a
+       GeoTIFF, read through the shared ingestion path.
    * - :class:`~geostl.sources.local.LocalGeoTiffSource`
      - Available
      - Any georeferenced GeoTIFF, any CRS; windowed reads handle multi-gigabyte
