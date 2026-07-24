@@ -1,4 +1,4 @@
-"""Northern-Italy elevation sources. Currently: South Tyrol (Alto Adige / Südtirol)."""
+"""SouthTyrolDGMSource — South Tyrol / Alto Adige LiDAR DTM (Province of Bolzano)."""
 from __future__ import annotations
 
 from geostl.sources.wcs import WCSSource

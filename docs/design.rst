@@ -209,7 +209,7 @@ one is a self-contained adapter.
      - Bavaria's national 1 m LiDAR DGM1 (LDBV), read as 1 km EPSG:25832 GeoTIFF
        tiles whose URLs are derived from the bbox; covers the Bavarian Alps —
        no local file needed.
-   * - :class:`~geostl.sources.italy.SouthTyrolDGMSource`
+   * - :class:`~geostl.sources.south_tyrol.SouthTyrolDGMSource`
      - Available
      - South Tyrol's LiDAR DTM (Province of Bolzano), fetched via its WCS and read
        through the shared path; 2.5 m province-wide (0.5 m where flown), covering
@@ -227,8 +227,10 @@ one is a self-contained adapter.
      - One or many remote Cloud-Optimized GeoTIFFs via ``/vsicurl``,
        overview-decimated; mosaicked when several are given.
    * - :class:`~geostl.sources.opentopography.OpenTopographySource`
-     - *Upcoming*
-     - Global SRTM / Copernicus DEMs via the OpenTopography API.
+     - Available
+     - **Global fallback.** Worldwide SRTM / Copernicus DEMs (~30 m) via the
+       OpenTopography REST API (free API key); server-side crop read through the
+       shared path. Covers regions without a national high-resolution source.
 
 
 Upcoming
@@ -238,8 +240,6 @@ Upcoming
 
    The following are planned and **not yet implemented**.
 
-- **Global coverage — OpenTopographySource.** Fetch SRTM / Copernicus DEMs from the
-  OpenTopography API so regions outside Austria work out of the box.
 - **Previews.** ``matplotlib`` 2D heatmap and 3D solid previews behind the ``viz``
   extra.
 - **Command-line interface.** A ``geostl`` command wrapping the section / grid

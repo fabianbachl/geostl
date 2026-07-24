@@ -9,17 +9,13 @@ reprojection to the metric grid, and nodata handling stay in one place.
 """
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Optional, Tuple
 
 from geostl.sources.base import ElevationSource
 
 if TYPE_CHECKING:
     from geostl.elevation import ElevationTile
     from geostl.positioning import BoundingBox
-
-# GeoTIFF / BigTIFF magic numbers — used to tell a coverage from an XML
-# ExceptionReport (a WCS server reports errors with HTTP 200 + an XML body).
-_TIFF_MAGIC = (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+")
 
 
 class WCSSource(ElevationSource):
@@ -118,28 +114,22 @@ class WCSSource(ElevationSource):
         target_crs: Optional[str] = None,
     ) -> "ElevationTile":
         import requests
-        from rasterio.io import MemoryFile
 
-        from geostl.sources._raster import fetch_rasters
+        from geostl.sources._raster import TIFF_MAGIC, geotiff_from_bytes
 
         resp = requests.get(
             self._build_url(bbox, fetch_resolution_m), timeout=self.timeout
         )
         resp.raise_for_status()
         content = resp.content
-        if not content.startswith(_TIFF_MAGIC):
-            # A WCS server returns errors as an XML body with HTTP 200.
+        if not content.startswith(TIFF_MAGIC):
+            # A WCS server returns errors as an XML body (sometimes with HTTP 200).
             snippet = content[:400].decode("utf-8", "replace").strip()
             raise ValueError(
                 f"WCS GetCoverage did not return a GeoTIFF from {self.endpoint} "
                 f"(coverage {self.coverage_id!r}). Server said:\n{snippet}"
             )
-
-        # Read the server-cropped GeoTIFF through the one shared ingestion path,
-        # from GDAL's in-memory filesystem (no temp file on disk).
-        with MemoryFile(content) as memfile:
-            return fetch_rasters(
-                [memfile.name], bbox,
-                fetch_resolution_m=fetch_resolution_m,
-                target_crs=target_crs, src_crs=self.crs,
-            )
+        return geotiff_from_bytes(
+            content, bbox, src_crs=self.crs,
+            fetch_resolution_m=fetch_resolution_m, target_crs=target_crs,
+        )

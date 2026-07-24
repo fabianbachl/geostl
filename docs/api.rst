@@ -61,7 +61,7 @@ Data sources
 .. automodule:: geostl.sources.germany
    :members:
 
-.. automodule:: geostl.sources.italy
+.. automodule:: geostl.sources.south_tyrol
    :members:
 
 Command-line interface

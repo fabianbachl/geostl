@@ -8,7 +8,7 @@ from rasterio.transform import from_origin
 from rasterio.warp import transform_bounds
 
 from geostl.positioning import BoundingBox
-from geostl.sources.italy import SouthTyrolDGMSource
+from geostl.sources.south_tyrol import SouthTyrolDGMSource
 from geostl.sources.wcs import WCSSource
 
 # A small box near Bolzano / Bozen, South Tyrol.

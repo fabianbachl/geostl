@@ -61,6 +61,7 @@ outputs a correctly scaled `ElevationTile` object, the downstream can handle it.
 | `AustriaDGMSource` | BEV 1 m ALS DTM/DSM via the INSPIRE ATOM service; no local file (CC-BY-4.0). |
 | `BavariaDGMSource` | Bavaria 1 m DGM1 LiDAR (LDBV), 1 km EPSG:25832 tiles derived from the bbox; Bavarian Alps. |
 | `SouthTyrolDGMSource` | South Tyrol LiDAR DTM (Province of Bolzano) via WCS; 2.5 m province-wide (0.5 m where flown), Dolomites & Ortler (CC0). |
+| `OpenTopographySource` | **Global fallback** — worldwide SRTM/Copernicus DEMs (~30 m) via the OpenTopography API (free key). |
 | `LocalGeoTiffSource` | Any georeferenced GeoTIFF, any CRS; windowed reads handle multi-GB files. |
 | `RemoteCOGSource` | One or many remote Cloud-Optimized GeoTIFFs via `/vsicurl` (overview-decimated). |
 | `WCSSource` | Generic OGC Web Coverage Service (WCS 2.0.1) client; server-side crop to GeoTIFF. |
@@ -77,8 +78,10 @@ As long as the Source implements the `ElevationSource(ABC)` class, it can be use
   3×3 grid of seam-matched STL pieces. Again, based on the local DGM_R25 GeoTIFF file by the BMEV. 
 - [`examples/bavaria_dgm.py`](examples/bavaria_dgm.py) — the Zugspitze massif **straight from
   Bavaria's DGM1 open-data tiles** (no local file; needs network).
-- [`examples/southtyrol_dgm.py`](examples/southtyrol_dgm.py) — the Tre Cime / Drei Zinnen
+- [`examples/southtyrol_dgm.py`](examples/southtyrol_dgm.py) — the Schlern / Seiser Alm
   (Dolomites) **straight from South Tyrol's WCS** (no local file; needs network).
+- [`examples/opentopography_global.py`](examples/opentopography_global.py) — Mont Blanc via the
+  **global OpenTopography fallback** (~30 m; needs a free API key in `$OPENTOPOGRAPHY_API_KEY`).
 
 ## Tests & docs
 
