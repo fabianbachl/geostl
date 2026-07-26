@@ -138,11 +138,3 @@ def resample_heights(heights, transform, crs, target_res_m):
     )
     return dst, dst_transform
 
-
-def rectify_geodesic(tile: "ElevationTile", bbox: "BoundingBox") -> "ElevationTile":
-    """No-GDAL fallback: approximate a local meter grid via geodesic distances.
-
-    Ported from the prototype notebook (``geopy``). Approximate; distortion grows
-    with bbox size. Use only when reprojection is unavailable.
-    """
-    raise NotImplementedError  # Phase 2 (optional)

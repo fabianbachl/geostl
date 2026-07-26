@@ -99,7 +99,7 @@ and reused by every file/URL-based source.
 :class:`~geostl.sources.cog.RemoteCOGSource` (one or many remote COGs via
 ``/vsicurl``), the national tile sources
 (:class:`~geostl.sources.austria.AustriaDGMSource` and
-:class:`~geostl.sources.germany.BavariaDGMSource`, which discover the covering
+:class:`~geostl.sources.bavaria.BavariaDGMSource`, which discover the covering
 tiles and then delegate to ``RemoteCOGSource``), and even
 :class:`~geostl.sources.wcs.WCSSource` (which hands the server-cropped GeoTIFF to
 the same code through GDAL's in-memory filesystem) all funnel through the same
@@ -204,7 +204,7 @@ one is a self-contained adapter.
      - Austria's national 1 m ALS DTM/DSM (BEV), discovered from its INSPIRE ATOM
        service and read as EPSG:3035 COG tiles via ``/vsicurl`` — no local file
        needed (CC-BY-4.0).
-   * - :class:`~geostl.sources.germany.BavariaDGMSource`
+   * - :class:`~geostl.sources.bavaria.BavariaDGMSource`
      - Available
      - Bavaria's national 1 m LiDAR DGM1 (LDBV), read as 1 km EPSG:25832 GeoTIFF
        tiles whose URLs are derived from the bbox; covers the Bavarian Alps —

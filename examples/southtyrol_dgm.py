@@ -37,7 +37,7 @@ def main() -> None:
     print(f"Fetched {w}x{h} px in {section.tile.crs} from the South Tyrol WCS")
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    section.export_stl(OUTPUT_PATH, resolution_mm=0.5)
+    section.export_stl(OUTPUT_PATH, resolution_mm=0.2)
     print(f"Wrote {OUTPUT_PATH} ({OUTPUT_PATH.stat().st_size / 1e6:.2f} MB)")
 
 

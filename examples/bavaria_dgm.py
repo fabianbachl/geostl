@@ -14,14 +14,13 @@ from pathlib import Path
 from geostl import GeoPoint, Region
 from geostl.sources import BavariaDGMSource
 
-# A box around the Zugspitze massif (Wetterstein range).
-CORNER_A = GeoPoint(lat=47.400, lon=10.960)
-CORNER_B = GeoPoint(lat=47.430, lon=11.010)
-OUTPUT_PATH = Path("examples/zugspitze_bayern.stl")
+# A box around the Watzmann massif (Berchtesgaden Alps).
+CENTER_POINT = GeoPoint(lat=47.554345, lon=12.922239)
+OUTPUT_PATH = Path("examples/watzmann.stl")
 
 
 def main() -> None:
-    region = Region.from_corners(CORNER_A, CORNER_B)
+    region = Region.from_center(CENTER_POINT, width_m=5000, height_m=5000)
     source = BavariaDGMSource()  # 1 m DGM1 from geodaten.bayern.de (LDBV)
 
     # to_section fetches the covering tiles, rectifies, and scales in one step.
@@ -39,7 +38,7 @@ def main() -> None:
     print(f"Fetched {w}x{h} px in {section.tile.crs} from the Bavaria DGM1 tiles")
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    section.export_stl(OUTPUT_PATH, resolution_mm=0.5)
+    section.export_stl(OUTPUT_PATH, resolution_mm=0.2)
     print(f"Wrote {OUTPUT_PATH} ({OUTPUT_PATH.stat().st_size / 1e6:.2f} MB)")
 
 

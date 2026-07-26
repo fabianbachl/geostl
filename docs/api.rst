@@ -58,7 +58,7 @@ Data sources
 .. automodule:: geostl.sources.austria
    :members:
 
-.. automodule:: geostl.sources.germany
+.. automodule:: geostl.sources.bavaria
    :members:
 
 .. automodule:: geostl.sources.south_tyrol

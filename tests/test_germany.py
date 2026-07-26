@@ -5,7 +5,7 @@ import pytest
 import requests
 
 from geostl.positioning import BoundingBox
-from geostl.sources.germany import BavariaDGMSource
+from geostl.sources.bavaria import BavariaDGMSource
 
 # A small box in the Bavarian Alps near Garmisch-Partenkirchen.
 _BBOX = BoundingBox(south=47.48, west=11.05, north=47.51, east=11.10)
