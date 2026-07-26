@@ -63,6 +63,30 @@ class Region:
     @classmethod
     def from_corners(cls, a: GeoPoint, b: GeoPoint) -> Region:
         return cls(BoundingBox.from_corners(a, b))
+    
+    @classmethod
+    def from_bbox(cls, bbox: BoundingBox) -> Region:
+        return cls(bbox)
+    
+    @classmethod
+    def from_center(cls, center: GeoPoint, width_m: float, height_m: float) -> Region:
+        """Build a region from a center point and width/height in metres.
+        Approximation: 1 deg lat ~ 111 km, 1 deg lon ~ 111 km * cos(latitude).
+
+        :param center: the center point of the region
+        :param width_m: the width of the region in metres
+        :param height_m: the height of the region in metres
+        :returns: a Region instance
+
+        """
+        lat_deg = height_m / 111000
+        lon_deg = width_m / (111000 * np.cos(np.radians(center.lat)))
+        return cls(BoundingBox(
+            south=center.lat - lat_deg / 2,
+            north=center.lat + lat_deg / 2,
+            west=center.lon - lon_deg / 2,
+            east=center.lon + lon_deg / 2,
+        ))
 
     def to_section(
         self,
@@ -85,13 +109,14 @@ class Region:
         re-scale without re-fetching.
 
         :param source: the elevation source to fetch from
-        :param bed_size_mm: the print-bed size; the scale is chosen so the longest
-            side of the region maps to ``bed_size_mm``. Mutually exclusive with ``scale_xy``.
+        :param bed_size_mm: the print-bed size; the scale is chosen so the longest side of the region maps to ``bed_size_mm``. Mutually exclusive with ``scale_xy``.
         :param scale_xy: the physical scale (mm per real metre); mutually exclusive with ``bed_size_mm``.
         :param z_exaggeration: how much to exaggerate the relief (1.0 = true scale).
         :param base_thickness_mm: how thick the solid base below the lowest point should be (mm).
         :param fetch_resolution_m: how coarse to read the source (metres/pixel); native resolution by default.
         :param target_crs: the target CRS for the rectified tile; if None, the source's native CRS is used.
+        :returns: a single scaled Section ready to mesh and export
+
         """
         tile = source.fetch(
             self.bbox, fetch_resolution_m=fetch_resolution_m, target_crs=target_crs
@@ -123,16 +148,18 @@ class Region:
         the printed tiles butt together. One shared scale is applied to every tile
         (``bed_size_mm`` is the per-tile print-bed size). Use :meth:`Grid.rescale` to
         re-scale, then :meth:`Grid.export_stl` (with an optional ``resolution_mm``).
+
         :param source: the elevation source to fetch from
         :param nx: number of tiles along the x (longitude) axis
         :param ny: number of tiles along the y (latitude) axis
-        :param bed_size_mm: the print-bed size; the scale is chosen so the longest
-            side of the largest tile maps to ``bed_size_mm``. Mutually exclusive with ``scale_xy``.
+        :param bed_size_mm: the print-bed size; the scale is chosen so the longest side of the largest tile maps to ``bed_size_mm``. Mutually exclusive with ``scale_xy``.
         :param scale_xy: the physical scale (mm per real metre); mutually exclusive with ``bed_size_mm``.
         :param z_exaggeration: how much to exaggerate the relief (1.0 = true scale).
         :param base_thickness_mm: how thick the solid base below the lowest point should be (mm).
         :param fetch_resolution_m: how coarse to read the source (metres/pixel); native resolution by default.
         :param target_crs: the target CRS for the rectified tile; if None, the source's native CRS is used.
+        :returns: a Grid of scaled Sections ready to mesh and export
+
         """
         tile = source.fetch(
             self.bbox, fetch_resolution_m=fetch_resolution_m, target_crs=target_crs

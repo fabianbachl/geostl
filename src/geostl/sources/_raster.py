@@ -16,6 +16,35 @@ if TYPE_CHECKING:
     from geostl.positioning import BoundingBox
 
 
+# GeoTIFF / BigTIFF magic numbers, for telling a coverage from an XML error body.
+TIFF_MAGIC = (b"II*\x00", b"MM\x00*", b"II+\x00", b"MM\x00+")
+
+
+def geotiff_from_bytes(
+    content: bytes,
+    bbox: "BoundingBox",
+    *,
+    src_crs: Optional[str] = None,
+    fetch_resolution_m: Optional[float] = None,
+    target_crs: Optional[str] = None,
+) -> "ElevationTile":
+    """Ingest an in-memory GeoTIFF through the shared read/reproject path.
+
+    Used by sources that receive a whole cropped GeoTIFF from a web service (a WCS
+    ``GetCoverage`` or a REST DEM API) rather than reading remote tiles: the bytes
+    are exposed to rasterio via GDAL's in-memory filesystem (no temp file on disk)
+    and handed to :func:`fetch_rasters`, so cropping, reprojection, and nodata
+    handling stay in one place.
+    """
+    from rasterio.io import MemoryFile
+
+    with MemoryFile(content) as memfile:
+        return fetch_rasters(
+            [memfile.name], bbox, fetch_resolution_m=fetch_resolution_m,
+            target_crs=target_crs, src_crs=src_crs,
+        )
+
+
 def _read_window(ds, crs, out_crs, out_bounds, out_width, out_height, pad=3):
     """Read the window of ``ds`` covering ``out_bounds`` (given in ``out_crs``),
     decimated to about the output pixel count.
